@@ -1,5 +1,13 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsArray, IsInt, IsNotEmpty, IsOptional, IsString, IsUUID, Min } from 'class-validator';
+import {
+  IsArray,
+  IsInt,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  IsUUID,
+  Min,
+} from 'class-validator';
 
 export class CreateProjectDto {
   @ApiProperty({ example: 'Plataforma Web para ONG Verde' })
@@ -7,7 +15,9 @@ export class CreateProjectDto {
   @IsNotEmpty({ message: 'O título do projeto é obrigatório.' })
   title: string;
 
-  @ApiProperty({ example: 'Desenvolvimento de uma aplicação para gestão de resíduos' })
+  @ApiProperty({
+    example: 'Desenvolvimento de uma aplicação para gestão de resíduos',
+  })
   @IsString()
   @IsNotEmpty({ message: 'A descrição é obrigatória.' })
   description: string;

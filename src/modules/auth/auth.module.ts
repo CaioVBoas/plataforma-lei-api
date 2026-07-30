@@ -9,7 +9,9 @@ import { RolesGuard } from './guards/roles.guard';
   imports: [
     PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.register({
-      secret: process.env.JWT_SECRET || 'chave-secreta-para-desenvolvimento-local-mude-em-producao',
+      secret:
+        process.env.JWT_SECRET ||
+        'chave-secreta-para-desenvolvimento-local-mude-em-producao',
       signOptions: { expiresIn: '1d' },
     }),
   ],

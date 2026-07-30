@@ -1,7 +1,20 @@
-import { Injectable, CanActivate, ExecutionContext, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  CanActivate,
+  ExecutionContext,
+  ForbiddenException,
+} from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { ROLES_KEY } from '../../../common/decorators/roles.decorator';
 import { Role } from '../../../common/enums/role.enum';
+
+interface RequestWithUser {
+  user?: {
+    userId: string;
+    email: string;
+    role: Role;
+  };
+}
 
 @Injectable()
 export class RolesGuard implements CanActivate {
@@ -17,7 +30,7 @@ export class RolesGuard implements CanActivate {
       return true;
     }
 
-    const { user } = context.switchToHttp().getRequest();
+    const { user } = context.switchToHttp().getRequest<RequestWithUser>();
     if (!user || !user.role) {
       throw new ForbiddenException('Acesso negado.');
     }
