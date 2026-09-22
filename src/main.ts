@@ -23,7 +23,7 @@ async function bootstrap() {
 
   // Documentação Swagger
   const config = new DocumentBuilder()
-    .setTitle('ONG Matchmaker API')
+    .setTitle('Plataforma LEI - API')
     .setDescription('API para conexão entre ONGs e a comunidade acadêmica')
     .setVersion('1.0')
     .addBearerAuth()
