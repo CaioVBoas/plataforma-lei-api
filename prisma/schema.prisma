@@ -1,3 +1,5 @@
+
+
 generator client {
   provider = "prisma-client-js"
 }
@@ -7,8 +9,14 @@ datasource db {
 }
 
 // ---------------------------------------------------------------------------
-// Enums
+// Enums 
 // ---------------------------------------------------------------------------
+
+enum PapelUsuario {
+  DOCENTE
+  ESTUDANTE
+  PARCEIRO
+}
 
 enum NivelEsperado {
   INICIANTE
@@ -19,7 +27,7 @@ enum NivelEsperado {
 enum TipoParceiro {
   ORGAO_PUBLICO
   UNIDADE_UFPE
-  ORGANIZACAO_SOCIAL
+  ORGANIZACAO_SOCIAL/ONG
   EMPRESA
   OUTRO
 }
@@ -36,7 +44,7 @@ enum StatusPratica {
   NAO_CONDUZ
 }
 
-enum SituacaoProjeto {
+enum StatusProjeto {
   EM_EXECUCAO_REGULAR
   EM_EXECUCAO_ATRASADO
   CONCLUIDO
@@ -47,269 +55,333 @@ enum TipoRegistro {
   PERENE
 }
 
-// ---------------------------------------------------------------------------
-// Docente e disciplinas
-// ---------------------------------------------------------------------------
 
-model Docente {
-  id                  String   @id @default(cuid())
-  nome                String
-  email               String   @unique
-  papel               String   @default("Docente")
-  pausado             Boolean  @default(false)
-  projetosPorSemestre Int      @default(2)
-  criadoEm            DateTime @default(now())
+model User {
+  id           String       @id @default(autoincrement())
+  email        String       @unique
+  passwordHash String
+  role         PapelUsuario
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
 
-  disciplinas        Disciplina[]
-  praticas           PraticaDocente[]
-  demandasReservadas Demanda[]           @relation("ReservaDocente")
-  correcoes          HistoricoCorrecao[]
+  professor Professor?
+  student   Student?
+  partner   Partner?
 
-  @@map("docentes")
-}
+  authoredProgressRecords ProgressRecord[]
+  authoredMessages        ConversationMessage[]
 
-model Disciplina {
-  id                     String        @id @default(cuid())
-  docenteId              String
-  nome                   String
-  codigo                 String
-  semestre               String
-  estudantesMatriculados Int
-  janelaInicio           DateTime?
-  janelaFim              DateTime?
-  nivelEsperado          NivelEsperado @default(INTERMEDIARIO)
-  ementa                 String?
-  capacidadeProjetos     Int           @default(1)
-  aceitaDemandas         Boolean       @default(true)
-  criadaEm               DateTime      @default(now())
-
-  docente   Docente             @relation(fields: [docenteId], references: [id], onDelete: Cascade)
-  praticas  PraticaDisciplina[]
-  projetos  Projeto[]
-
-  @@unique([docenteId, codigo, semestre])
-  @@map("disciplinas")
+  @@map("users")
 }
 
 // ---------------------------------------------------------------------------
-// Demandas (ofertas de parceiros externos) e competências
+// Professor e cursos
 // ---------------------------------------------------------------------------
 
-model Demanda {
-  id               String       @id @default(cuid())
-  organizacao      String
-  tipoParceiro     TipoParceiro
-  problema         String
-  descricao        String
-  publicoAfetado   String
-  onde             String?
-  desdeQuando      String?
-  viabilidade      Viabilidade
-  dataPublicacao   DateTime     @default(now())
-  docenteReservaId String?
-  prazoReserva     DateTime?
-  semInteressados  Boolean      @default(false)
+model Professor {
+  id                  String   @id @default(autoincrement())
+  userId              String   @unique
+  name                String
+  academicRole        String   @default("Docente")
+  paused              Boolean  @default(false)
+  projectsPerSemester Int      @default(2)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
 
-  docenteReserva Docente?              @relation("ReservaDocente", fields: [docenteReservaId], references: [id])
-  competencias   DemandaCompetencia[]
-  referencias    Referencia[]
-  mensagens      MensagemConversa[]
-  projeto        Projeto?
+  user            User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  courses         Course[]
+  skills          ProfessorSkill[]
+  reservedDemands Demand[]          @relation("DemandReservation")
+  corrections     CorrectionHistory[]
 
-  @@map("demandas")
+  @@map("professors")
 }
 
-model Competencia {
-  id   String @id @default(cuid())
-  nome String @unique
-  peso Int    @default(1)
+model Course {
+  id                String        @id @default(autoincrement())
+  professorId       String
+  name              String
+  code              String
+  semester          String
+  enrolledStudents  Int
+  windowStart       DateTime?
+  windowEnd         DateTime?
+  expectedLevel     NivelEsperado @default(INTERMEDIARIO)
+  syllabus          String?
+  projectCapacity   Int           @default(1)
+  acceptsDemands    Boolean       @default(true)
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
 
-  demandas           DemandaCompetencia[]
-  praticasDocente    PraticaDocente[]
-  praticasDisciplina PraticaDisciplina[]
+  professor Professor     @relation(fields: [professorId], references: [id], onDelete: Cascade)
+  skills    CourseSkill[]
+  projects  Project[]
 
-  @@map("competencias")
+  @@unique([professorId, code, semester])
+  @@map("courses")
 }
 
-model DemandaCompetencia {
-  demandaId     String
-  competenciaId String
+model Partner {
+  id     String       @id @default(autoincrement())
+  userId String?      @unique
+  name   String
+  type   TipoParceiro
 
-  demanda     Demanda     @relation(fields: [demandaId], references: [id], onDelete: Cascade)
-  competencia Competencia @relation(fields: [competenciaId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  @@id([demandaId, competenciaId])
-  @@map("demanda_competencias")
+  user    User?    @relation(fields: [userId], references: [id])
+  demands Demand[]
+
+  @@map("partners")
 }
 
-model PraticaDocente {
-  docenteId     String
-  competenciaId String
-  status        StatusPratica
-  origem        String?
+model Demand {
+  id                    String      @id @default(autoincrement())
+  partnerId             String
+  problem               String
+  description           String
+  affectedAudience      String
+  location              String?
+  since                 String?
+  viability             Viabilidade
+  reservedByProfessorId String?
+  reservationDeadline   DateTime?
+  hasNoInterested       Boolean     @default(false)
+  createdAt             DateTime    @default(now())
+  updatedAt             DateTime    @updatedAt
 
-  docente     Docente     @relation(fields: [docenteId], references: [id], onDelete: Cascade)
-  competencia Competencia @relation(fields: [competenciaId], references: [id], onDelete: Cascade)
+  partner             Partner               @relation(fields: [partnerId], references: [id])
+  reservedByProfessor Professor?            @relation("DemandReservation", fields: [reservedByProfessorId], references: [id])
+  skills              DemandSkill[]
+  references          Reference[]
+  messages            ConversationMessage[]
+  project             Project?
 
-  @@id([docenteId, competenciaId])
-  @@map("praticas_docente")
-}
-
-model PraticaDisciplina {
-  disciplinaId  String
-  competenciaId String
-  status        StatusPratica
-  origem        String?
-
-  disciplina  Disciplina  @relation(fields: [disciplinaId], references: [id], onDelete: Cascade)
-  competencia Competencia @relation(fields: [competenciaId], references: [id], onDelete: Cascade)
-
-  @@id([disciplinaId, competenciaId])
-  @@map("praticas_disciplina")
-}
-
-// ---------------------------------------------------------------------------
-// Projetos, equipes e estudantes
-// ---------------------------------------------------------------------------
-
-model Projeto {
-  id                 String          @id @default(cuid())
-  demandaId          String          @unique
-  disciplinaId       String
-  titulo             String
-  entregavelAcordado String
-  situacao           SituacaoProjeto @default(EM_EXECUCAO_REGULAR)
-  dataInicio         DateTime?
-  dataConclusao      DateTime?
-
-  demanda        Demanda              @relation(fields: [demandaId], references: [id])
-  disciplina     Disciplina           @relation(fields: [disciplinaId], references: [id])
-  equipes        Equipe[]
-  secoesProposta PropostaSecao[]
-  cargaHoraria   CargaHoraria[]
-  registros      RegistroAndamento[]
-
-  @@map("projetos")
-}
-
-model Equipe {
-  id        String  @id @default(cuid())
-  projetoId String
-  nome      String
-  recorte   String?
-
-  projeto   Projeto              @relation(fields: [projetoId], references: [id], onDelete: Cascade)
-  membros   EquipeEstudante[]
-  registros RegistroAndamento[]
-
-  @@map("equipes")
-}
-
-model Estudante {
-  id        String @id @default(cuid())
-  nome      String
-  matricula String @unique
-
-  equipes EquipeEstudante[]
-
-  @@map("estudantes")
-}
-
-model EquipeEstudante {
-  equipeId            String
-  estudanteId         String
-  horasRegistradas    Int     @default(0)
-  projetosSimultaneos Int     @default(1)
-  disponibilidade     String?
-
-  equipe    Equipe    @relation(fields: [equipeId], references: [id], onDelete: Cascade)
-  estudante Estudante @relation(fields: [estudanteId], references: [id], onDelete: Cascade)
-
-  @@id([equipeId, estudanteId])
-  @@map("equipe_estudantes")
+  @@map("demands")
 }
 
 // ---------------------------------------------------------------------------
-// Proposta (transposição para o SIGAA), carga horária e acompanhamento
+// Skills 
 // ---------------------------------------------------------------------------
 
-model PropostaSecao {
-  id        String @id @default(cuid())
-  projetoId String
-  titulo    String
-  texto     String
-  ordem     Int
+model Skill {
+  id     String @id @default(autoincrement())
+  name   String @unique
+  weight Int    @default(1)
 
-  projeto Projeto @relation(fields: [projetoId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  @@unique([projetoId, ordem])
-  @@map("proposta_secoes")
+  demandSkills    DemandSkill[]
+  professorSkills ProfessorSkill[]
+  courseSkills    CourseSkill[]
+
+  @@map("skills")
 }
 
-model CargaHoraria {
-  id            String @id @default(cuid())
-  projetoId     String
-  atividade     String
-  horas         Int
-  participantes String
+model DemandSkill {
+  demandId  String
+  skillId   String
+  createdAt DateTime @default(now())
 
-  projeto Projeto @relation(fields: [projetoId], references: [id], onDelete: Cascade)
+  demand Demand @relation(fields: [demandId], references: [id], onDelete: Cascade)
+  skill  Skill  @relation(fields: [skillId], references: [id], onDelete: Cascade)
 
-  @@map("carga_horaria")
+  @@id([demandId, skillId])
+  @@map("demand_skills")
 }
 
-model RegistroAndamento {
-  id        String       @id @default(cuid())
-  projetoId String
-  equipeId  String?
-  autor     String
-  tipo      TipoRegistro
-  data      DateTime     @default(now())
-  texto     String
-  anexos    String[]
+model ProfessorSkill {
+  professorId String
+  skillId     String
+  status      StatusPratica
+  source      String?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
 
-  projeto Projeto @relation(fields: [projetoId], references: [id], onDelete: Cascade)
-  equipe  Equipe? @relation(fields: [equipeId], references: [id])
+  professor Professor @relation(fields: [professorId], references: [id], onDelete: Cascade)
+  skill     Skill     @relation(fields: [skillId], references: [id], onDelete: Cascade)
 
-  @@map("registros_andamento")
+  @@id([professorId, skillId])
+  @@map("professor_skills")
+}
+
+model CourseSkill {
+  courseId  String
+  skillId   String
+  status    StatusPratica
+  source    String?
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  skill  Skill  @relation(fields: [skillId], references: [id], onDelete: Cascade)
+
+  @@id([courseId, skillId])
+  @@map("course_skills")
 }
 
 // ---------------------------------------------------------------------------
-// Referências, conversa e histórico de correções
+// Projeto, equipes e estudantes
 // ---------------------------------------------------------------------------
 
-model Referencia {
-  id        String  @id @default(cuid())
-  demandaId String
-  nome      String
-  url       String
-  descricao String?
+model Project {
+  id                String        @id @default(autoincrement())
+  demandId          String        @unique
+  courseId          String
+  title             String
+  agreedDeliverable String
+  status            StatusProjeto @default(EM_EXECUCAO_REGULAR)
+  startDate         DateTime?
+  endDate           DateTime?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
 
-  demanda Demanda @relation(fields: [demandaId], references: [id], onDelete: Cascade)
+  demand          Demand            @relation(fields: [demandId], references: [id])
+  course          Course            @relation(fields: [courseId], references: [id])
+  teams           Team[]
+  proposalSections ProposalSection[]
+  workloads       Workload[]
+  progressRecords ProgressRecord[]
 
-  @@map("referencias")
+  @@map("projects")
 }
 
-model MensagemConversa {
-  id        String   @id @default(cuid())
-  demandaId String
-  autor     String
-  papel     String
-  data      DateTime @default(now())
-  mensagem  String
+model Team {
+  id        String   @id @default(autoincrement())
+  projectId String
+  name      String
+  scope     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  demanda Demanda @relation(fields: [demandaId], references: [id], onDelete: Cascade)
+  project         Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  members         TeamStudent[]
+  progressRecords ProgressRecord[]
 
-  @@map("mensagens_conversa")
+  @@map("teams")
 }
 
-model HistoricoCorrecao {
-  id        String   @id @default(cuid())
-  docenteId String
-  texto     String
-  data      DateTime @default(now())
+model Student {
+  id     String  @id @default(autoincrement())
+  userId String? @unique
+  name             String
+  registrationNumber String @unique
 
-  docente Docente @relation(fields: [docenteId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  @@map("historico_correcoes")
+  user  User?         @relation(fields: [userId], references: [id])
+  teams TeamStudent[]
+
+  @@map("students")
+}
+
+model TeamStudent {
+  teamId             String
+  studentId          String
+  loggedHours        Int     @default(0)
+  concurrentProjects Int     @default(1)
+  availability       String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  team    Team    @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@id([teamId, studentId])
+  @@map("team_students")
+}
+
+// ---------------------------------------------------------------------------
+// Proposta e carga horária
+// ---------------------------------------------------------------------------
+
+model ProposalSection {
+  id        String   @id @default(autoincrement())
+  projectId String
+  title     String
+  text      String
+  order     Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, order])
+  @@map("proposal_sections")
+}
+
+model Workload {
+  id           String @id @default(autoincrement())
+  projectId    String
+  activity     String
+  hours        Int
+  participants String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@map("workloads")
+}
+
+model ProgressRecord {
+  id        String       @id @default(autoincrement())
+  projectId String
+  teamId    String?
+  authorId  String
+  type      TipoRegistro
+  text      String
+  attachments String[]
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  team    Team?   @relation(fields: [teamId], references: [id])
+  author  User    @relation(fields: [authorId], references: [id])
+
+  @@map("progress_records")
+}
+
+model Reference {
+  id          String  @id @default(autoincrement())
+  demandId    String
+  name        String
+  url         String
+  description String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  demand Demand @relation(fields: [demandId], references: [id], onDelete: Cascade)
+
+  @@map("references")
+}
+
+model ConversationMessage {
+  id        String   @id @default(autoincrement())
+  demandId  String
+  authorId  String
+  message   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  demand Demand @relation(fields: [demandId], references: [id], onDelete: Cascade)
+  author User   @relation(fields: [authorId], references: [id])
+
+  @@map("conversation_messages")
+}
+
+model CorrectionHistory {
+  id          String   @id @default(autoincrement())
+  professorId String
+  text        String
+  createdAt   DateTime @default(now())
+
+  professor Professor @relation(fields: [professorId], references: [id], onDelete: Cascade)
+
+  @@map("correction_histories")
 }
