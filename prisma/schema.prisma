@@ -6,40 +6,376 @@ datasource db {
   provider = "postgresql"
 }
 
-enum Role {
-  STUDENT
-  PROFESSOR
-  ORGANIZATION
-  ADMIN
+// ---------------------------------------------------------------------------
+// Enums 
+// ---------------------------------------------------------------------------
+
+enum PapelUsuario {
+  DOCENTE
+  ESTUDANTE
+  PARCEIRO
 }
 
-enum ProjectStatus {
-  DRAFT
-  OPEN
-  IN_PROGRESS
-  COMPLETED
+enum NivelEsperado {
+  INICIANTE
+  INTERMEDIARIO
+  AVANCADO
+}
+
+enum TipoParceiro {
+  ORGAO_PUBLICO
+  UNIDADE_UFPE
+  ORGANIZACAO_SOCIAL_ONG
+  EMPRESA
+  OUTRO
+}
+
+enum Viabilidade {
+  CABE_NO_SEMESTRE
+  APERTADO_EXIGE_RECORTE
+  NAO_CABE
+}
+
+enum StatusPratica {
+  CONFIRMADA
+  INFERIDA
+  NAO_CONDUZ
+}
+
+enum StatusProjeto {
+  EM_EXECUCAO_REGULAR
+  EM_EXECUCAO_ATRASADO
+  CONCLUIDO
+}
+
+enum TipoRegistro {
+  PONTUAL
+  PERENE
 }
 
 model User {
-  id        String    @id @default(uuid())
-  email     String    @unique
-  password  String
-  role      Role      @default(STUDENT)
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  projects  Project[]
+  id           Int          @id @default(autoincrement())
+  email        String       @unique
+  passwordHash String
+  role         PapelUsuario
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  professor Professor?
+  student   Student?
+  partner   Partner?
+
+  authoredProgressRecords ProgressRecord[]
+  authoredMessages        ConversationMessage[]
+
+  @@map("users")
 }
 
+// ---------------------------------------------------------------------------
+// Professor e cursos
+// ---------------------------------------------------------------------------
+
+model Professor {
+  id                  Int      @id @default(autoincrement())
+  userId              Int      @unique
+  name                String
+  academicRole        String   @default("Docente")
+  paused              Boolean  @default(false)
+  projectsPerSemester Int      @default(2)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  user            User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  courses         Course[]
+  skills          ProfessorSkill[]
+  reservedDemands Demand[]            @relation("DemandReservation")
+  corrections     CorrectionHistory[]
+
+  @@map("professors")
+}
+
+model Course {
+  id               Int           @id @default(autoincrement())
+  professorId      Int
+  name             String
+  code             String
+  semester         String
+  enrolledStudents Int
+  windowStart      DateTime?
+  windowEnd        DateTime?
+  expectedLevel    NivelEsperado @default(INTERMEDIARIO)
+  syllabus         String?
+  projectCapacity  Int           @default(1)
+  acceptsDemands   Boolean       @default(true)
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  professor Professor     @relation(fields: [professorId], references: [id], onDelete: Cascade)
+  skills    CourseSkill[]
+  projects  Project[]
+
+  @@unique([professorId, code, semester])
+  @@map("courses")
+}
+
+model Partner {
+  id     Int          @id @default(autoincrement())
+  userId Int?         @unique
+  name   String
+  type   TipoParceiro
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user    User?    @relation(fields: [userId], references: [id])
+  demands Demand[]
+
+  @@map("partners")
+}
+
+model Demand {
+  id                    Int         @id @default(autoincrement())
+  partnerId             Int
+  problem               String
+  description           String
+  affectedAudience      String
+  location              String?
+  since                 String?
+  viability             Viabilidade
+  reservedByProfessorId Int?
+  reservationDeadline   DateTime?
+  hasNoInterested       Boolean     @default(false)
+  createdAt             DateTime    @default(now())
+  updatedAt             DateTime    @updatedAt
+
+  partner             Partner               @relation(fields: [partnerId], references: [id])
+  reservedByProfessor Professor?            @relation("DemandReservation", fields: [reservedByProfessorId], references: [id])
+  skills              DemandSkill[]
+  references          Reference[]
+  messages            ConversationMessage[]
+  project             Project?
+
+  @@map("demands")
+}
+
+// ---------------------------------------------------------------------------
+// Skills 
+// ---------------------------------------------------------------------------
+
+model Skill {
+  id     Int    @id @default(autoincrement())
+  name   String @unique
+  weight Int    @default(1)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  demandSkills    DemandSkill[]
+  professorSkills ProfessorSkill[]
+  courseSkills    CourseSkill[]
+
+  @@map("skills")
+}
+
+model DemandSkill {
+  demandId  Int
+  skillId   Int
+  createdAt DateTime @default(now())
+
+  demand Demand @relation(fields: [demandId], references: [id], onDelete: Cascade)
+  skill  Skill  @relation(fields: [skillId], references: [id], onDelete: Cascade)
+
+  @@id([demandId, skillId])
+  @@map("demand_skills")
+}
+
+model ProfessorSkill {
+  professorId Int
+  skillId     Int
+  status      StatusPratica
+  source      String?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  professor Professor @relation(fields: [professorId], references: [id], onDelete: Cascade)
+  skill     Skill     @relation(fields: [skillId], references: [id], onDelete: Cascade)
+
+  @@id([professorId, skillId])
+  @@map("professor_skills")
+}
+
+model CourseSkill {
+  courseId  Int
+  skillId   Int
+  status    StatusPratica
+  source    String?
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  skill  Skill  @relation(fields: [skillId], references: [id], onDelete: Cascade)
+
+  @@id([courseId, skillId])
+  @@map("course_skills")
+}
+
+// ---------------------------------------------------------------------------
+// Projeto, equipes e estudantes
+// ---------------------------------------------------------------------------
+
 model Project {
-  id             String        @id @default(uuid())
-  title          String
-  description    String
-  area           String
-  requiredSkills String[]
-  vacancies      Int           @default(1)
-  status         ProjectStatus @default(OPEN)
-  organizationId String
-  organization   User          @relation(fields: [organizationId], references: [id])
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
+  id                Int           @id @default(autoincrement())
+  demandId          Int           @unique
+  courseId          Int
+  title             String
+  agreedDeliverable String
+  status            StatusProjeto @default(EM_EXECUCAO_REGULAR)
+  startDate         DateTime?
+  endDate           DateTime?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  demand           Demand            @relation(fields: [demandId], references: [id])
+  course           Course            @relation(fields: [courseId], references: [id])
+  teams            Team[]
+  proposalSections ProposalSection[]
+  workloads        Workload[]
+  progressRecords  ProgressRecord[]
+
+  @@map("projects")
+}
+
+model Team {
+  id        Int      @id @default(autoincrement())
+  projectId Int
+  name      String
+  scope     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  project         Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  members         TeamStudent[]
+  progressRecords ProgressRecord[]
+
+  @@map("teams")
+}
+
+model Student {
+  id                 Int      @id @default(autoincrement())
+  userId             Int?     @unique
+  name               String
+  registrationNumber String   @unique
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  user  User?         @relation(fields: [userId], references: [id])
+  teams TeamStudent[]
+
+  @@map("students")
+}
+
+model TeamStudent {
+  teamId             Int
+  studentId          Int
+  loggedHours        Int      @default(0)
+  concurrentProjects Int      @default(1)
+  availability       String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  team    Team    @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@id([teamId, studentId])
+  @@map("team_students")
+}
+
+// ---------------------------------------------------------------------------
+// Proposta e carga horária
+// ---------------------------------------------------------------------------
+
+model ProposalSection {
+  id        Int      @id @default(autoincrement())
+  projectId Int
+  title     String
+  text      String
+  order     Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, order])
+  @@map("proposal_sections")
+}
+
+model Workload {
+  id           Int      @id @default(autoincrement())
+  projectId    Int
+  activity     String
+  hours        Int
+  participants String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@map("workloads")
+}
+
+model ProgressRecord {
+  id          Int          @id @default(autoincrement())
+  projectId   Int
+  teamId      Int?
+  authorId    Int
+  type        TipoRegistro
+  text        String
+  attachments String[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  team    Team?   @relation(fields: [teamId], references: [id])
+  author  User    @relation(fields: [authorId], references: [id])
+
+  @@map("progress_records")
+}
+
+model Reference {
+  id          Int      @id @default(autoincrement())
+  demandId    Int
+  name        String
+  url         String
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  demand Demand @relation(fields: [demandId], references: [id], onDelete: Cascade)
+
+  @@map("references")
+}
+
+model ConversationMessage {
+  id        Int      @id @default(autoincrement())
+  demandId  Int
+  authorId  Int
+  message   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  demand Demand @relation(fields: [demandId], references: [id], onDelete: Cascade)
+  author User   @relation(fields: [authorId], references: [id])
+
+  @@map("conversation_messages")
+}
+
+model CorrectionHistory {
+  id          Int      @id @default(autoincrement())
+  professorId Int
+  text        String
+  createdAt   DateTime @default(now())
+
+  professor Professor @relation(fields: [professorId], references: [id], onDelete: Cascade)
+
+  @@map("correction_histories")
 }
