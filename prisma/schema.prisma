@@ -1,5 +1,3 @@
-
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -27,7 +25,7 @@ enum NivelEsperado {
 enum TipoParceiro {
   ORGAO_PUBLICO
   UNIDADE_UFPE
-  ORGANIZACAO_SOCIAL/ONG
+  ORGANIZACAO_SOCIAL_ONG
   EMPRESA
   OUTRO
 }
@@ -55,9 +53,8 @@ enum TipoRegistro {
   PERENE
 }
 
-
 model User {
-  id           String       @id @default(autoincrement())
+  id           Int          @id @default(autoincrement())
   email        String       @unique
   passwordHash String
   role         PapelUsuario
@@ -79,8 +76,8 @@ model User {
 // ---------------------------------------------------------------------------
 
 model Professor {
-  id                  String   @id @default(autoincrement())
-  userId              String   @unique
+  id                  Int      @id @default(autoincrement())
+  userId              Int      @unique
   name                String
   academicRole        String   @default("Docente")
   paused              Boolean  @default(false)
@@ -88,30 +85,30 @@ model Professor {
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 
-  user            User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user            User                @relation(fields: [userId], references: [id], onDelete: Cascade)
   courses         Course[]
   skills          ProfessorSkill[]
-  reservedDemands Demand[]          @relation("DemandReservation")
+  reservedDemands Demand[]            @relation("DemandReservation")
   corrections     CorrectionHistory[]
 
   @@map("professors")
 }
 
 model Course {
-  id                String        @id @default(autoincrement())
-  professorId       String
-  name              String
-  code              String
-  semester          String
-  enrolledStudents  Int
-  windowStart       DateTime?
-  windowEnd         DateTime?
-  expectedLevel     NivelEsperado @default(INTERMEDIARIO)
-  syllabus          String?
-  projectCapacity   Int           @default(1)
-  acceptsDemands    Boolean       @default(true)
-  createdAt         DateTime      @default(now())
-  updatedAt         DateTime      @updatedAt
+  id               Int           @id @default(autoincrement())
+  professorId      Int
+  name             String
+  code             String
+  semester         String
+  enrolledStudents Int
+  windowStart      DateTime?
+  windowEnd        DateTime?
+  expectedLevel    NivelEsperado @default(INTERMEDIARIO)
+  syllabus         String?
+  projectCapacity  Int           @default(1)
+  acceptsDemands   Boolean       @default(true)
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
 
   professor Professor     @relation(fields: [professorId], references: [id], onDelete: Cascade)
   skills    CourseSkill[]
@@ -122,8 +119,8 @@ model Course {
 }
 
 model Partner {
-  id     String       @id @default(autoincrement())
-  userId String?      @unique
+  id     Int          @id @default(autoincrement())
+  userId Int?         @unique
   name   String
   type   TipoParceiro
 
@@ -137,15 +134,15 @@ model Partner {
 }
 
 model Demand {
-  id                    String      @id @default(autoincrement())
-  partnerId             String
+  id                    Int         @id @default(autoincrement())
+  partnerId             Int
   problem               String
   description           String
   affectedAudience      String
   location              String?
   since                 String?
   viability             Viabilidade
-  reservedByProfessorId String?
+  reservedByProfessorId Int?
   reservationDeadline   DateTime?
   hasNoInterested       Boolean     @default(false)
   createdAt             DateTime    @default(now())
@@ -166,7 +163,7 @@ model Demand {
 // ---------------------------------------------------------------------------
 
 model Skill {
-  id     String @id @default(autoincrement())
+  id     Int    @id @default(autoincrement())
   name   String @unique
   weight Int    @default(1)
 
@@ -181,8 +178,8 @@ model Skill {
 }
 
 model DemandSkill {
-  demandId  String
-  skillId   String
+  demandId  Int
+  skillId   Int
   createdAt DateTime @default(now())
 
   demand Demand @relation(fields: [demandId], references: [id], onDelete: Cascade)
@@ -193,8 +190,8 @@ model DemandSkill {
 }
 
 model ProfessorSkill {
-  professorId String
-  skillId     String
+  professorId Int
+  skillId     Int
   status      StatusPratica
   source      String?
   createdAt   DateTime      @default(now())
@@ -208,8 +205,8 @@ model ProfessorSkill {
 }
 
 model CourseSkill {
-  courseId  String
-  skillId   String
+  courseId  Int
+  skillId   Int
   status    StatusPratica
   source    String?
   createdAt DateTime      @default(now())
@@ -227,9 +224,9 @@ model CourseSkill {
 // ---------------------------------------------------------------------------
 
 model Project {
-  id                String        @id @default(autoincrement())
-  demandId          String        @unique
-  courseId          String
+  id                Int           @id @default(autoincrement())
+  demandId          Int           @unique
+  courseId          Int
   title             String
   agreedDeliverable String
   status            StatusProjeto @default(EM_EXECUCAO_REGULAR)
@@ -238,19 +235,19 @@ model Project {
   createdAt         DateTime      @default(now())
   updatedAt         DateTime      @updatedAt
 
-  demand          Demand            @relation(fields: [demandId], references: [id])
-  course          Course            @relation(fields: [courseId], references: [id])
-  teams           Team[]
+  demand           Demand            @relation(fields: [demandId], references: [id])
+  course           Course            @relation(fields: [courseId], references: [id])
+  teams            Team[]
   proposalSections ProposalSection[]
-  workloads       Workload[]
-  progressRecords ProgressRecord[]
+  workloads        Workload[]
+  progressRecords  ProgressRecord[]
 
   @@map("projects")
 }
 
 model Team {
-  id        String   @id @default(autoincrement())
-  projectId String
+  id        Int      @id @default(autoincrement())
+  projectId Int
   name      String
   scope     String?
   createdAt DateTime @default(now())
@@ -264,13 +261,12 @@ model Team {
 }
 
 model Student {
-  id     String  @id @default(autoincrement())
-  userId String? @unique
-  name             String
-  registrationNumber String @unique
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                 Int      @id @default(autoincrement())
+  userId             Int?     @unique
+  name               String
+  registrationNumber String   @unique
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
 
   user  User?         @relation(fields: [userId], references: [id])
   teams TeamStudent[]
@@ -279,10 +275,10 @@ model Student {
 }
 
 model TeamStudent {
-  teamId             String
-  studentId          String
-  loggedHours        Int     @default(0)
-  concurrentProjects Int     @default(1)
+  teamId             Int
+  studentId          Int
+  loggedHours        Int      @default(0)
+  concurrentProjects Int      @default(1)
   availability       String?
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
@@ -299,8 +295,8 @@ model TeamStudent {
 // ---------------------------------------------------------------------------
 
 model ProposalSection {
-  id        String   @id @default(autoincrement())
-  projectId String
+  id        Int      @id @default(autoincrement())
+  projectId Int
   title     String
   text      String
   order     Int
@@ -314,14 +310,13 @@ model ProposalSection {
 }
 
 model Workload {
-  id           String @id @default(autoincrement())
-  projectId    String
+  id           Int      @id @default(autoincrement())
+  projectId    Int
   activity     String
   hours        Int
   participants String
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
   project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
@@ -329,15 +324,15 @@ model Workload {
 }
 
 model ProgressRecord {
-  id        String       @id @default(autoincrement())
-  projectId String
-  teamId    String?
-  authorId  String
-  type      TipoRegistro
-  text      String
+  id          Int          @id @default(autoincrement())
+  projectId   Int
+  teamId      Int?
+  authorId    Int
+  type        TipoRegistro
+  text        String
   attachments String[]
-  createdAt DateTime     @default(now())
-  updatedAt DateTime     @updatedAt
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
 
   project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
   team    Team?   @relation(fields: [teamId], references: [id])
@@ -347,14 +342,13 @@ model ProgressRecord {
 }
 
 model Reference {
-  id          String  @id @default(autoincrement())
-  demandId    String
+  id          Int      @id @default(autoincrement())
+  demandId    Int
   name        String
   url         String
   description String?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   demand Demand @relation(fields: [demandId], references: [id], onDelete: Cascade)
 
@@ -362,9 +356,9 @@ model Reference {
 }
 
 model ConversationMessage {
-  id        String   @id @default(autoincrement())
-  demandId  String
-  authorId  String
+  id        Int      @id @default(autoincrement())
+  demandId  Int
+  authorId  Int
   message   String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -376,8 +370,8 @@ model ConversationMessage {
 }
 
 model CorrectionHistory {
-  id          String   @id @default(autoincrement())
-  professorId String
+  id          Int      @id @default(autoincrement())
+  professorId Int
   text        String
   createdAt   DateTime @default(now())
 
