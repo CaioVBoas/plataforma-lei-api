@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsNotEmpty, IsString } from 'class-validator';
-import { BaseRegisterDto } from './base-register.dto';
+import { BaseRegisterDto } from './baseRegister.dto';
 
 export class RegisterProfessorDto extends BaseRegisterDto {
   @ApiProperty({ example: 'João Pereira' })

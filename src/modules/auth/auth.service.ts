@@ -9,11 +9,11 @@ import * as bcrypt from 'bcryptjs';
 import { Role } from '../../common/enums/role.enum';
 import { toPapelUsuario, toRole } from '../../common/mappers/role.mapper';
 import { PrismaService } from '../../database/prisma.service';
-import { AuthResponseDto, UserResponseDto } from './dto/auth-response.dto';
+import { AuthResponseDto, UserResponseDto } from './dto/authResponse.dto';
 import { LoginDto } from './dto/login.dto';
-import { RegisterPartnerDto } from './dto/register-partner.dto';
-import { RegisterProfessorDto } from './dto/register-professor.dto';
-import { RegisterStudentDto } from './dto/register-student.dto';
+import { RegisterPartnerDto } from './dto/registerPartner.dto';
+import { RegisterProfessorDto } from './dto/registerProfessor.dto';
+import { RegisterStudentDto } from './dto/registerStudent.dto';
 
 export const SALT_ROUNDS = 10;
 

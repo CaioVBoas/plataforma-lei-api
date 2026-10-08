@@ -13,14 +13,14 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { CurrentUser } from '../../common/decorators/currentUser.decorator';
 import { AuthService } from './auth.service';
-import { AuthResponseDto, UserResponseDto } from './dto/auth-response.dto';
+import { AuthResponseDto, UserResponseDto } from './dto/authResponse.dto';
 import { LoginDto } from './dto/login.dto';
-import { RegisterPartnerDto } from './dto/register-partner.dto';
-import { RegisterProfessorDto } from './dto/register-professor.dto';
-import { RegisterStudentDto } from './dto/register-student.dto';
-import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { RegisterPartnerDto } from './dto/registerPartner.dto';
+import { RegisterProfessorDto } from './dto/registerProfessor.dto';
+import { RegisterStudentDto } from './dto/registerStudent.dto';
+import { JwtAuthGuard } from './guards/jwtAuth.guard';
 
 @ApiTags('auth')
 @Controller('auth')

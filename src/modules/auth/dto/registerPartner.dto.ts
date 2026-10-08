@@ -1,7 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { TipoParceiro } from '@prisma/client';
 import { IsEnum, IsNotEmpty, IsString } from 'class-validator';
-import { BaseRegisterDto } from './base-register.dto';
+import { BaseRegisterDto } from './baseRegister.dto';
 
 export class RegisterPartnerDto extends BaseRegisterDto {
   @ApiProperty({ example: 'ONG Verde Recife' })
