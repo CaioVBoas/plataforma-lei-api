@@ -1,11 +1,18 @@
-import { Controller, Get, Post, Body, Param, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Param,
+  ParseIntPipe,
+  UseGuards,
+} from '@nestjs/common';
 import { ProjectsService } from './projects.service';
 import { CreateProjectDto } from './dto/createProject.dto';
 import { JwtAuthGuard } from '../auth/guards/jwtAuth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { Role } from '../../common/enums/role.enum';
-import { CurrentUser } from '../../common/decorators/currentUser.decorator';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 
 @ApiTags('projects')
@@ -15,17 +22,11 @@ export class ProjectsController {
 
   @Post()
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.ORGANIZATION)
+  @Roles(Role.PROFESSOR)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Cadastrar projeto (Apenas ONGs)' })
-  create(
-    @Body() createProjectDto: CreateProjectDto,
-    @CurrentUser() user: { userId: string },
-  ) {
-    return this.projectsService.create({
-      ...createProjectDto,
-      organizationId: user.userId,
-    });
+  @ApiOperation({ summary: 'Cadastrar/Adotar projeto (Docentes)' })
+  create(@Body() createProjectDto: CreateProjectDto) {
+    return this.projectsService.create(createProjectDto);
   }
 
   @Get()
@@ -36,7 +37,7 @@ export class ProjectsController {
 
   @Get(':id')
   @ApiOperation({ summary: 'Buscar projeto por ID' })
-  findOne(@Param('id') id: string) {
+  findOne(@Param('id', ParseIntPipe) id: number) {
     return this.projectsService.findOne(id);
   }
 }

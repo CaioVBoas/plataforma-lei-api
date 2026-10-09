@@ -1,45 +1,37 @@
 import { ApiProperty } from '@nestjs/swagger';
-import {
-  IsArray,
-  IsInt,
-  IsNotEmpty,
-  IsOptional,
-  IsString,
-  IsUUID,
-  Min,
-} from 'class-validator';
+import { IsInt, IsNotEmpty, IsOptional, IsString, Min } from 'class-validator';
 
 export class CreateProjectDto {
-  @ApiProperty({ example: 'Plataforma Web para ONG Verde' })
+  @ApiProperty({ example: 1, description: 'ID da demanda vinculada' })
+  @IsInt()
+  @IsNotEmpty({ message: 'O ID da demanda é obrigatório.' })
+  demandId: number;
+
+  @ApiProperty({ example: 1, description: 'ID da disciplina vinculada' })
+  @IsInt()
+  @IsNotEmpty({ message: 'O ID da disciplina é obrigatório.' })
+  courseId: number;
+
+  @ApiProperty({ example: 'Painel de Acompanhamento das Feiras' })
   @IsString()
   @IsNotEmpty({ message: 'O título do projeto é obrigatório.' })
   title: string;
 
   @ApiProperty({
-    example: 'Desenvolvimento de uma aplicação para gestão de resíduos',
+    example: 2,
+    default: 1,
+    description: 'Número de equipes alocadas',
   })
-  @IsString()
-  @IsNotEmpty({ message: 'A descrição é obrigatória.' })
-  description: string;
-
-  @ApiProperty({ example: 'Meio Ambiente' })
-  @IsString()
-  @IsNotEmpty({ message: 'A área é obrigatória.' })
-  area: string;
-
-  @ApiProperty({ example: ['React', 'TypeScript', 'Node.js'] })
-  @IsArray()
-  @IsString({ each: true })
-  requiredSkills: string[];
-
-  @ApiProperty({ example: 3, default: 1 })
   @IsInt()
   @Min(1)
   @IsOptional()
-  vacancies?: number;
+  teams?: number;
 
-  @ApiProperty({ example: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11' })
-  @IsUUID('4')
-  @IsNotEmpty()
-  organizationId: string;
+  @ApiProperty({
+    example: 'Protótipo navegável em React e documento de requisitos',
+    required: false,
+  })
+  @IsString()
+  @IsOptional()
+  agreedDeliverable?: string;
 }
