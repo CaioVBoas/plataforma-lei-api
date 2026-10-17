@@ -1,7 +1,12 @@
+import 'dotenv/config';
 import { PrismaClient, PapelUsuario, NivelCurso, TipoParceiro, ViabilidadeEscopo, EtapaSubmissao } from '@prisma/client';
+import { PrismaPg } from '@prisma/adapter-pg';
 import * as bcrypt from 'bcryptjs';
 
-const prisma = new PrismaClient();
+// Prisma 7 exige driver adapter, igual ao PrismaService da aplicação.
+const prisma = new PrismaClient({
+  adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }),
+});
 
 async function main() {
   console.log('Iniciando seed do banco de dados...');
@@ -69,6 +74,7 @@ async function main() {
           focalRole: 'Coordenadora do núcleo de regulação',
           phone: '(81) 3878-1000',
           channel: 'E-mail institucional',
+          tutorialSeen: false,
         },
       },
     },
