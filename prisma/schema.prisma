@@ -154,6 +154,9 @@ model Partner {
   focalRole      String?
   phone          String?
   channel        String?      @default("E-mail")
+  // E-mail do ponto focal; nulo quando é o mesmo do login (User.email)
+  contactEmail   String?
+  tutorialSeen   Boolean      @default(false)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
