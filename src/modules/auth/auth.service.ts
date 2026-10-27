@@ -8,6 +8,7 @@ import { PapelUsuario, Prisma } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
 import { Role } from '../../common/enums/role.enum';
 import { toPapelUsuario, toRole } from '../../common/mappers/role.mapper';
+import { parseUserId } from '../../common/utils/parseUserId';
 import { PrismaService } from '../../database/prisma.service';
 import { AuthResponseDto, UserResponseDto } from './dto/authResponse.dto';
 import { LoginDto } from './dto/login.dto';
@@ -69,7 +70,7 @@ export class AuthService {
   async registerProfessor(dto: RegisterProfessorDto): Promise<AuthResponseDto> {
     return this.register(dto, Role.PROFESSOR, (tx, userId) =>
       tx.professor.create({
-        data: { userId, name: dto.name },
+        data: { userId, name: dto.name, department: dto.department },
         select: { name: true },
       }),
     );
@@ -78,7 +79,14 @@ export class AuthService {
   async registerPartner(dto: RegisterPartnerDto): Promise<AuthResponseDto> {
     return this.register(dto, Role.ORGANIZATION, (tx, userId) =>
       tx.partner.create({
-        data: { userId, name: dto.name, type: dto.type },
+        data: {
+          userId,
+          name: dto.name,
+          type: dto.type,
+          location: dto.location,
+          focalName: dto.focalName,
+          focalRole: dto.focalRole,
+        },
         select: { name: true },
       }),
     );
@@ -119,7 +127,7 @@ export class AuthService {
    */
   async me(userId: string): Promise<UserResponseDto> {
     const user = await this.prisma.user.findUnique({
-      where: { id: this.parseUserId(userId) },
+      where: { id: parseUserId(userId) },
       select: USER_SELECT,
     });
 
@@ -196,21 +204,6 @@ export class AuthService {
         : error.message;
 
     return asText.toLowerCase();
-  }
-
-  /**
-   * O contrato externo trata o identificador como string; o banco usa inteiro
-   * autoincremento. `Number('abc')` devolveria `NaN` e o Prisma lançaria um
-   * erro obscuro, então a validação acontece antes de tocar o banco.
-   */
-  private parseUserId(userId: string): number {
-    const parsed = Number(userId);
-
-    if (!Number.isInteger(parsed) || parsed <= 0) {
-      throw new UnauthorizedException();
-    }
-
-    return parsed;
   }
 
   private buildAuthResponse(

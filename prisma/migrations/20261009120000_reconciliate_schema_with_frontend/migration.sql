@@ -166,7 +166,7 @@ ALTER TABLE "project_milestones" ADD CONSTRAINT "project_milestones_projectId_fk
 ALTER TABLE "proposal_sections" ADD COLUMN "limit" INTEGER NOT NULL DEFAULT 2000;
 
 -- AlterTable references
-ALTER TABLE "references" ADD COLUMN "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP;
+ALTER TABLE "references" ADD COLUMN IF NOT EXISTS "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP;
 
 -- Drop obsoletes
 DROP TABLE IF EXISTS "progress_records";
