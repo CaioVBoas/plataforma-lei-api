@@ -4,6 +4,7 @@ import { PrismaModule } from './database/prisma.module';
 import { AccountModule } from './modules/account/account.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { CalendarModule } from './modules/calendar/calendar.module';
+import { OrgPortalModule } from './modules/org-portal/orgPortal.module';
 import { OrgProfileModule } from './modules/orgProfile/orgProfile.module';
 import { ProjectsModule } from './modules/projects/projects.module';
 
@@ -13,6 +14,7 @@ import { ProjectsModule } from './modules/projects/projects.module';
     PrismaModule,
     AuthModule,
     ProjectsModule,
+    OrgPortalModule,
     AccountModule,
     CalendarModule,
     OrgProfileModule,
