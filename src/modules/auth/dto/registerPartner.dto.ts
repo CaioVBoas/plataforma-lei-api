@@ -18,4 +18,21 @@ export class RegisterPartnerDto extends BaseRegisterDto {
   })
   @IsEnum(TipoParceiro, { message: 'Tipo de parceiro inválido.' })
   type: TipoParceiro;
+
+  @ApiProperty({ example: 'Boa Viagem, Recife' })
+  @IsString()
+  @IsNotEmpty({ message: 'Informe onde a organização fica.' })
+  location: string;
+
+  // Quem se cadastra é o ponto focal: o representante da conta e o contato
+  // da organização são a mesma pessoa até alguém trocar no perfil.
+  @ApiProperty({ example: 'Ana Souza', description: 'Nome do ponto focal' })
+  @IsString()
+  @IsNotEmpty({ message: 'Informe seu nome.' })
+  focalName: string;
+
+  @ApiProperty({ example: 'Coordenadora de projetos', description: 'Cargo' })
+  @IsString()
+  @IsNotEmpty({ message: 'Informe seu cargo.' })
+  focalRole: string;
 }

@@ -167,9 +167,10 @@ describe('AuthService', () => {
 
   describe('registerProfessor', () => {
     const dto = {
-      email: 'joao@ufpe.br',
+      email: 'joao@cin.ufpe.br',
       password: 'senhaSegura123',
       name: 'João Pereira',
+      department: 'Centro de Informática',
     };
 
     beforeEach(() => {
@@ -189,10 +190,11 @@ describe('AuthService', () => {
       expect(tx.professor.create.mock.calls[0][0].data).toMatchObject({
         userId: 2,
         name: dto.name,
+        department: dto.department,
       });
     });
 
-    it('não envia campos do perfil que têm valor padrão no schema', async () => {
+    it('não envia campos do perfil que o cadastro não coleta', async () => {
       await service.registerProfessor(dto);
 
       const { data } = tx.professor.create.mock.calls[0][0];
@@ -216,6 +218,9 @@ describe('AuthService', () => {
       password: 'senhaSegura123',
       name: 'ONG Verde Recife',
       type: TipoParceiro.ORGANIZACAO_SOCIAL_ONG,
+      location: 'Boa Viagem, Recife',
+      focalName: 'Ana Souza',
+      focalRole: 'Coordenadora de projetos',
     };
 
     beforeEach(() => {
@@ -236,6 +241,22 @@ describe('AuthService', () => {
         name: dto.name,
         type: TipoParceiro.ORGANIZACAO_SOCIAL_ONG,
       });
+    });
+
+    it('grava o local e o ponto focal informados no cadastro', async () => {
+      await service.registerPartner(dto);
+
+      expect(tx.partner.create.mock.calls[0][0].data).toMatchObject({
+        location: dto.location,
+        focalName: dto.focalName,
+        focalRole: dto.focalRole,
+      });
+    });
+
+    it('devolve o nome da organização, não o do ponto focal', async () => {
+      const result = await service.registerPartner(dto);
+
+      expect(result.user.name).toBe(dto.name);
     });
 
     it('devolve papel ORGANIZATION na resposta', async () => {
