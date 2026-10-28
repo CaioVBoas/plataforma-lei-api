@@ -31,6 +31,11 @@ const orgProjectSelect = {
           user: { select: { email: true } },
         },
       },
+      coTeachers: {
+        select: {
+          professor: { select: { name: true } },
+        },
+      },
     },
   },
   demand: { select: { id: true, title: true } },
@@ -40,7 +45,7 @@ type OrgProject = Prisma.ProjectGetPayload<{ select: typeof orgProjectSelect }>;
 
 function toOrgResponse(project: OrgProject) {
   const { milestones, outcomeAdoption, course, ...rest } = project;
-  const { professor, ...courseInfo } = course;
+  const { professor, coTeachers, ...courseInfo } = course;
   return {
     ...rest,
     course: courseInfo,
@@ -50,6 +55,7 @@ function toOrgResponse(project: OrgProject) {
       phone: professor.phone,
       email: professor.user.email,
     },
+    coTeachers: (coTeachers ?? []).map((entry) => entry.professor.name),
     milestones: milestones.map(({ step, ...milestone }) => ({
       ...milestone,
       step: toStep(step),

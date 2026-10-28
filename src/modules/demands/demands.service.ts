@@ -259,7 +259,7 @@ export class DemandsService {
     }
 
     const reservationDeadline = new Date();
-    reservationDeadline.setDate(reservationDeadline.getDate() + 14);
+    reservationDeadline.setDate(reservationDeadline.getDate() + 7);
 
     await this.prisma.demandWatcher.deleteMany({
       where: {

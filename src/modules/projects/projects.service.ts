@@ -12,10 +12,10 @@ import {
   toProjectResponse,
 } from './projects.mapper';
 import {
+  buildInitialPlanSections,
   computeMilestoneDates,
   demandFitsCourseLevel,
   maxTeams,
-  PLAN_TEMPLATE,
   WORKLOAD_TEMPLATE,
 } from './projects.rules';
 import {
@@ -105,11 +105,7 @@ export class ProjectsService {
           })),
         },
         proposalSections: {
-          create: PLAN_TEMPLATE.map((section, index) => ({
-            ...section,
-            text: '',
-            order: index + 1,
-          })),
+          create: buildInitialPlanSections(demand, course, teams),
         },
         workloads: { create: WORKLOAD_TEMPLATE },
       },
