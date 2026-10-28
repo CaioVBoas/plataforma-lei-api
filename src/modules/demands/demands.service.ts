@@ -155,9 +155,7 @@ export class DemandsService {
     });
   }
 
-  async requireProfessor(
-    userId: string | number,
-  ): Promise<ProfessorWithUser> {
+  async requireProfessor(userId: string | number): Promise<ProfessorWithUser> {
     const professor = await this.getProfessorByUserId(userId);
     if (!professor) {
       throw new ForbiddenException('Perfil de docente não encontrado.');
@@ -180,9 +178,7 @@ export class DemandsService {
       orderBy: { id: 'asc' },
     });
 
-    return demands.map((demand) =>
-      this.mapDemand(demand as DemandWithRelations, currentProfessor),
-    );
+    return demands.map((demand) => this.mapDemand(demand, currentProfessor));
   }
 
   async getDemand(id: number, userId?: string): Promise<DemandDetailDto> {
@@ -200,10 +196,7 @@ export class DemandsService {
       throw new NotFoundException('Demanda não encontrada.');
     }
 
-    const mappedDemand = this.mapDemand(
-      demand as DemandWithRelations,
-      currentProfessor,
-    );
+    const mappedDemand = this.mapDemand(demand, currentProfessor);
     const mappedOrg = this.mapOrganization(demand.partner);
 
     let projectId: string | undefined = undefined;
@@ -266,7 +259,7 @@ export class DemandsService {
     }
 
     const reservationDeadline = new Date();
-    reservationDeadline.setDate(reservationDeadline.getDate() + 14);
+    reservationDeadline.setDate(reservationDeadline.getDate() + 7);
 
     await this.prisma.demandWatcher.deleteMany({
       where: {
@@ -464,7 +457,7 @@ export class DemandsService {
 
     const watching = Boolean(
       currentProfessor &&
-        demand.watchers?.some((w) => w.professorId === currentProfessor.id),
+      demand.watchers?.some((w) => w.professorId === currentProfessor.id),
     );
 
     let invitation: DemandInvitationDto | undefined = undefined;
@@ -564,9 +557,7 @@ export class DemandsService {
     return mapped;
   }
 
-  mapOrganization(
-    partner: DemandWithRelations['partner'],
-  ): OrganizationDto {
+  mapOrganization(partner: DemandWithRelations['partner']): OrganizationDto {
     const history: OrganizationHistoryEntryDto[] = [];
     if (partner.demands) {
       for (const d of partner.demands) {

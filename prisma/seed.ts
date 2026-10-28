@@ -12,17 +12,20 @@ async function main() {
   console.log('Iniciando seed do banco de dados...');
 
   // 1. Calendário Acadêmico Oficial (2026.2)
+  const calendarDates = {
+    startsAt: new Date('2026-08-03T00:00:00Z'),
+    endsAt: new Date('2026-12-18T00:00:00Z'),
+    linkDeadline: new Date('2026-11-20T00:00:00Z'),
+    midtermAt: new Date('2026-11-27T00:00:00Z'),
+    finalAt: new Date('2026-12-11T00:00:00Z'),
+    isCurrent: true,
+  };
   const calendar = await prisma.academicCalendar.upsert({
     where: { semester: '2026.2' },
-    update: {},
+    update: calendarDates,
     create: {
       semester: '2026.2',
-      startsAt: new Date('2026-08-03T00:00:00Z'),
-      endsAt: new Date('2026-12-04T00:00:00Z'),
-      linkDeadline: new Date('2026-09-12T00:00:00Z'),
-      midtermAt: new Date('2026-10-09T00:00:00Z'),
-      finalAt: new Date('2026-11-27T00:00:00Z'),
-      isCurrent: true,
+      ...calendarDates,
     },
   });
   console.log('Calendário acadêmico criado:', calendar.semester);
