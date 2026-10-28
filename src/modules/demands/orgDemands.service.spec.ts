@@ -518,7 +518,7 @@ describe('OrgDemandsService', () => {
       ).rejects.toThrow(BadRequestException);
     });
 
-    it('deve enviar para EM_TRIAGEM com submittedAt definido e reviewNote limpo', async () => {
+    it('deve publicar a demanda com submittedAt/publishedAt definidos e reviewNote limpo', async () => {
       prismaMock.partner.findUnique.mockResolvedValue(mockPartner);
       prismaMock.demand.findFirst.mockResolvedValue({
         id: 100,
@@ -536,10 +536,12 @@ describe('OrgDemandsService', () => {
         description: 'Contexto completo',
         affectedAudience: 'Público',
         expectedOutcome: 'Resultado esperado',
+        scopeNote: 'Resultado esperado',
         meetingCadence: 'Semanal',
         offers: ['Acesso ao sistema'],
-        stage: EtapaSubmissao.EM_TRIAGEM,
+        stage: EtapaSubmissao.PUBLICADA,
         submittedAt: new Date(),
+        publishedAt: new Date(),
         reviewNote: null,
         updatedAt: new Date(),
         skills: [],
@@ -564,7 +566,8 @@ describe('OrgDemandsService', () => {
       expect(prismaMock.demand.update).toHaveBeenCalledWith(
         expect.objectContaining({
           data: expect.objectContaining({
-            stage: EtapaSubmissao.EM_TRIAGEM,
+            stage: EtapaSubmissao.PUBLICADA,
+            scopeNote: 'Resultado esperado',
             reviewNote: null,
           }),
         }),

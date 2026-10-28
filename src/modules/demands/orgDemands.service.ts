@@ -21,6 +21,7 @@ import {
   Reference,
   DemandQuestion,
 } from '@prisma/client';
+import { toPartnerTypeLabel } from '../../common/mappers/partnerType.mapper';
 import { PrismaService } from '../../database/prisma.service';
 import { SaveDraftDto } from './dto/saveDraft.dto';
 import { DemandDraftDto } from './dto/demandDraft.dto';
@@ -365,6 +366,7 @@ export class OrgDemandsService {
           description: clean.description,
           affectedAudience: clean.affectedPublic,
           expectedOutcome: clean.expectedOutcome,
+          scopeNote: clean.expectedOutcome,
           meetingCadence: clean.meetingCadence,
           constraints: clean.constraints,
           offers: clean.offers,
@@ -379,6 +381,7 @@ export class OrgDemandsService {
           description: clean.description,
           affectedAudience: clean.affectedPublic,
           expectedOutcome: clean.expectedOutcome,
+          scopeNote: clean.expectedOutcome,
           meetingCadence: clean.meetingCadence,
           constraints: clean.constraints,
           offers: clean.offers,
@@ -455,6 +458,7 @@ export class OrgDemandsService {
         );
       }
 
+      const now = new Date();
       await this.prisma.demand.update({
         where: { id: demandId },
         data: {
@@ -463,17 +467,20 @@ export class OrgDemandsService {
           description: clean.description,
           affectedAudience: clean.affectedPublic,
           expectedOutcome: clean.expectedOutcome,
+          scopeNote: clean.expectedOutcome,
           meetingCadence: clean.meetingCadence,
           constraints: clean.constraints,
           offers: clean.offers,
-          stage: EtapaSubmissao.EM_TRIAGEM,
-          submittedAt: new Date(),
+          stage: EtapaSubmissao.PUBLICADA,
+          submittedAt: now,
+          publishedAt: now,
           reviewNote: null,
           reviewedBy: null,
           reviewedAt: null,
         },
       });
     } else {
+      const now = new Date();
       const created = await this.prisma.demand.create({
         data: {
           partnerId: partner.id,
@@ -482,11 +489,13 @@ export class OrgDemandsService {
           description: clean.description,
           affectedAudience: clean.affectedPublic,
           expectedOutcome: clean.expectedOutcome,
+          scopeNote: clean.expectedOutcome,
           meetingCadence: clean.meetingCadence,
           constraints: clean.constraints,
           offers: clean.offers,
-          stage: EtapaSubmissao.EM_TRIAGEM,
-          submittedAt: new Date(),
+          stage: EtapaSubmissao.PUBLICADA,
+          submittedAt: now,
+          publishedAt: now,
           reviewNote: null,
           reviewedBy: null,
           reviewedAt: null,
@@ -834,7 +843,7 @@ export class OrgDemandsService {
       [EtapaSubmissao.RASCUNHO]: 'draft',
       [EtapaSubmissao.EM_TRIAGEM]: 'in-review',
       [EtapaSubmissao.AJUSTE_PEDIDO]: 'needs-changes',
-      [EtapaSubmissao.PUBLICADA]: 'draft',
+      [EtapaSubmissao.PUBLICADA]: 'in-review',
     };
 
     const stage = stageMap[demand.stage] ?? 'draft';
@@ -844,7 +853,7 @@ export class OrgDemandsService {
       organization: {
         id: String(partner.id),
         name: partner.name,
-        type: partner.type,
+        type: toPartnerTypeLabel(partner.type),
         logo: partner.logo ?? undefined,
       },
       stage,
@@ -919,7 +928,7 @@ export class OrgDemandsService {
       organization: {
         id: String(demand.partner.id),
         name: demand.partner.name,
-        type: demand.partner.type,
+        type: toPartnerTypeLabel(demand.partner.type),
         logo: demand.partner.logo ?? undefined,
       },
       title: demand.title,
@@ -930,7 +939,7 @@ export class OrgDemandsService {
       level: levelMap[demand.level] ?? 'intermediate',
       constraints: demand.constraints ?? [],
       scopeFit: scopeFitMap[demand.scopeFit] ?? 'fits',
-      scopeNote: demand.scopeNote ?? '',
+      scopeNote: demand.scopeNote ?? demand.expectedOutcome ?? '',
       meetingCadence: demand.meetingCadence ?? '',
       offers: demand.offers ?? [],
       publishedAt: (demand.publishedAt ?? demand.createdAt)

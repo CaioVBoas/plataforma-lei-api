@@ -537,7 +537,7 @@ export class DemandsService {
       level,
       constraints: (demand.constraints || []) as DemandConstraintDto[],
       scopeFit,
-      scopeNote: demand.scopeNote || '',
+      scopeNote: demand.scopeNote || demand.expectedOutcome || '',
       meetingCadence: demand.meetingCadence || '',
       offers: demand.offers || [],
       publishedAt: toIsoDate(demand.publishedAt || demand.createdAt),
