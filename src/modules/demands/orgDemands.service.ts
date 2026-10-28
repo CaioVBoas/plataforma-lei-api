@@ -27,11 +27,7 @@ import { DemandDraftDto } from './dto/demandDraft.dto';
 
 export type SubmissionStage = 'draft' | 'in-review' | 'needs-changes';
 export type OrgDemandStage =
-  | SubmissionStage
-  | 'open'
-  | 'reserved'
-  | 'in-project'
-  | 'done';
+  SubmissionStage | 'open' | 'reserved' | 'in-project' | 'done';
 
 export interface SubmissionReview {
   note: string;
@@ -213,9 +209,7 @@ export class OrgDemandsService {
       orderBy: { updatedAt: 'desc' },
     });
 
-    const summaries = demands.map((demand) =>
-      this.toOrgDemandSummary(demand),
-    );
+    const summaries = demands.map((demand) => this.toOrgDemandSummary(demand));
 
     return summaries.sort((a, b) => b.date.localeCompare(a.date));
   }
@@ -245,10 +239,14 @@ export class OrgDemandsService {
     const mapped = demands.map((d) => this.toPublishedDemand(d));
 
     return mapped.sort((a, b) => {
-      const aUnanswered = a.questions.filter((q) => q.replies.length === 0).length;
-      const bUnanswered = b.questions.filter((q) => q.replies.length === 0).length;
+      const aUnanswered = a.questions.filter(
+        (q) => q.replies.length === 0,
+      ).length;
+      const bUnanswered = b.questions.filter(
+        (q) => q.replies.length === 0,
+      ).length;
 
-      if ((bUnanswered > 0) !== (aUnanswered > 0)) {
+      if (bUnanswered > 0 !== aUnanswered > 0) {
         return (bUnanswered > 0 ? 1 : 0) - (aUnanswered > 0 ? 1 : 0);
       }
 
@@ -325,7 +323,10 @@ export class OrgDemandsService {
     };
   }
 
-  async saveDraft(userId: string, dto: SaveDraftDto): Promise<DemandSubmission> {
+  async saveDraft(
+    userId: string,
+    dto: SaveDraftDto,
+  ): Promise<DemandSubmission> {
     const partner = await this.getPartner(userId);
     const clean = this.cleanDraft(dto.draft);
 
@@ -387,7 +388,11 @@ export class OrgDemandsService {
       demandId = created.id;
     }
 
-    await this.syncSkillsAndReferences(demandId, clean.skills, clean.references);
+    await this.syncSkillsAndReferences(
+      demandId,
+      clean.skills,
+      clean.references,
+    );
 
     const saved = await this.prisma.demand.findUnique({
       where: { id: demandId },
@@ -412,7 +417,8 @@ export class OrgDemandsService {
     if (!clean.problem) missing.push('O problema em uma frase');
     if (!clean.description) missing.push('Contexto');
     if (!clean.affectedPublic) missing.push('Quem sente o problema');
-    if (!clean.expectedOutcome) missing.push('O que ajudaria ao fim do semestre');
+    if (!clean.expectedOutcome)
+      missing.push('O que ajudaria ao fim do semestre');
     if (!clean.meetingCadence) missing.push('Reuniões com a turma');
     if (!clean.offers || !clean.offers.some((offer) => offer.trim())) {
       missing.push('O que vocês oferecem à turma');
@@ -489,7 +495,11 @@ export class OrgDemandsService {
       demandId = created.id;
     }
 
-    await this.syncSkillsAndReferences(demandId, clean.skills, clean.references);
+    await this.syncSkillsAndReferences(
+      demandId,
+      clean.skills,
+      clean.references,
+    );
 
     const saved = await this.prisma.demand.findUnique({
       where: { id: demandId },
@@ -618,8 +628,14 @@ export class OrgDemandsService {
       description: (draft.description || '').trim(),
       affectedPublic: (draft.affectedPublic || '').trim(),
       expectedOutcome: (draft.expectedOutcome || '').trim(),
-      skills: [...new Set((draft.skills || []).map((s) => s.trim()).filter(Boolean))],
-      constraints: [...new Set((draft.constraints || []).map((c) => c.trim()).filter(Boolean))],
+      skills: [
+        ...new Set((draft.skills || []).map((s) => s.trim()).filter(Boolean)),
+      ],
+      constraints: [
+        ...new Set(
+          (draft.constraints || []).map((c) => c.trim()).filter(Boolean),
+        ),
+      ],
       meetingCadence: (draft.meetingCadence || '').trim(),
       offers: (draft.offers || []).map((o) => o.trim()).filter(Boolean),
       references: (draft.references || [])
@@ -738,10 +754,14 @@ export class OrgDemandsService {
       date = demand.updatedAt.toISOString().split('T')[0];
     } else if (demand.stage === EtapaSubmissao.EM_TRIAGEM) {
       stage = 'in-review';
-      date = (demand.submittedAt ?? demand.updatedAt).toISOString().split('T')[0];
+      date = (demand.submittedAt ?? demand.updatedAt)
+        .toISOString()
+        .split('T')[0];
     } else if (demand.stage === EtapaSubmissao.AJUSTE_PEDIDO) {
       stage = 'needs-changes';
-      date = (demand.reviewedAt ?? demand.updatedAt).toISOString().split('T')[0];
+      date = (demand.reviewedAt ?? demand.updatedAt)
+        .toISOString()
+        .split('T')[0];
     } else {
       // PUBLICADA
       const project = demand.project;
@@ -757,9 +777,12 @@ export class OrgDemandsService {
       } else {
         const isReserved =
           demand.reservedByProfessorId != null &&
-          (!demand.reservationDeadline || demand.reservationDeadline > new Date());
+          (!demand.reservationDeadline ||
+            demand.reservationDeadline > new Date());
         stage = isReserved ? 'reserved' : 'open';
-        date = (demand.publishedAt ?? demand.updatedAt).toISOString().split('T')[0];
+        date = (demand.publishedAt ?? demand.updatedAt)
+          .toISOString()
+          .split('T')[0];
         unanswered = (demand.questions ?? []).filter(
           (q) => !q.answerText || !q.answerText.trim(),
         ).length;
@@ -867,11 +890,12 @@ export class OrgDemandsService {
       project?: Project | null;
     },
   ): DemandView {
-    const levelMap: Record<NivelCurso, 'intro' | 'intermediate' | 'advanced'> = {
-      [NivelCurso.INICIANTE]: 'intro',
-      [NivelCurso.INTERMEDIARIO]: 'intermediate',
-      [NivelCurso.AVANCADO]: 'advanced',
-    };
+    const levelMap: Record<NivelCurso, 'intro' | 'intermediate' | 'advanced'> =
+      {
+        [NivelCurso.INICIANTE]: 'intro',
+        [NivelCurso.INTERMEDIARIO]: 'intermediate',
+        [NivelCurso.AVANCADO]: 'advanced',
+      };
 
     const scopeFitMap: Record<ViabilidadeEscopo, 'fits' | 'needs-cut'> = {
       [ViabilidadeEscopo.CABE_NO_SEMESTRE]: 'fits',
@@ -969,10 +993,7 @@ export class OrgDemandsService {
       course?: (Course & { professor?: Professor | null }) | null;
     },
   ): OrgProjectSummary {
-    const milestoneStepMap: Record<
-      EtapaProjeto,
-      MilestoneView['id']
-    > = {
+    const milestoneStepMap: Record<EtapaProjeto, MilestoneView['id']> = {
       [EtapaProjeto.PLANO]: 'plan',
       [EtapaProjeto.KICKOFF]: 'kickoff',
       [EtapaProjeto.SIGAA]: 'sigaa',
@@ -981,7 +1002,10 @@ export class OrgDemandsService {
       [EtapaProjeto.ENCERRAMENTO]: 'closing',
     };
 
-    const adoptionMap: Record<AdocaoResultado, 'in-use' | 'partial' | 'not-used'> = {
+    const adoptionMap: Record<
+      AdocaoResultado,
+      'in-use' | 'partial' | 'not-used'
+    > = {
       [AdocaoResultado.EM_USO]: 'in-use',
       [AdocaoResultado.PARCIAL]: 'partial',
       [AdocaoResultado.NAO_USADO]: 'not-used',
@@ -1005,7 +1029,7 @@ export class OrgDemandsService {
         ? {
             summary: project.outcomeSummary,
             adoption: project.outcomeAdoption
-              ? adoptionMap[project.outcomeAdoption] ?? 'in-use'
+              ? (adoptionMap[project.outcomeAdoption] ?? 'in-use')
               : 'in-use',
           }
         : undefined,

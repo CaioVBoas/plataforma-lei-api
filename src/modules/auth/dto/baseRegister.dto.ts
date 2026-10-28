@@ -1,5 +1,11 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { IsEmail, IsNotEmpty, IsString, MinLength } from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import {
+  IsEmail,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  MinLength,
+} from 'class-validator';
 
 export class BaseRegisterDto {
   @ApiProperty({ example: 'maria.silva@ufpe.br' })
@@ -11,4 +17,12 @@ export class BaseRegisterDto {
   @IsString()
   @MinLength(8, { message: 'A senha deve ter no mínimo 8 caracteres.' })
   password: string;
+
+  @ApiPropertyOptional({
+    example: '123456',
+    description: 'Código de 6 números enviado ao e-mail',
+  })
+  @IsOptional()
+  @IsString()
+  code?: string;
 }

@@ -1,8 +1,18 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { Prisma } from '@prisma/client';
+import * as bcrypt from 'bcryptjs';
 import { parseUserId } from '../../common/utils/parseUserId';
+import { checkPasswordRules, SALT_ROUNDS } from '../../common/utils/password';
 import { toStoredImage } from '../../common/validation/imageDataUrl';
 import { PrismaService } from '../../database/prisma.service';
+import {
+  ChangePasswordDto,
+  DeleteAccountDto,
+} from '../auth/dto/accessAccount.dto';
 import { OrgAccountDto } from './dto/orgAccount.dto';
 import { OrgProfileDto } from './dto/orgProfile.dto';
 import { UpdateOrgAccountDto } from './dto/updateOrgAccount.dto';
@@ -103,6 +113,66 @@ export class OrgProfileService {
     });
 
     return toProfileDto(updated);
+  }
+
+  async changePassword(userId: string, dto: ChangePasswordDto): Promise<void> {
+    const id = parseUserId(userId);
+    await this.getPartner(userId);
+    const user = await this.prisma.user.findUnique({
+      where: { id },
+      select: { id: true, passwordHash: true },
+    });
+    if (!user) {
+      throw new NotFoundException('Perfil de organização não encontrado.');
+    }
+
+    const matches = await bcrypt.compare(dto.current, user.passwordHash);
+    if (!matches) {
+      throw new BadRequestException('A senha atual não confere.');
+    }
+
+    checkPasswordRules(dto.next);
+    if (dto.next !== dto.confirm) {
+      throw new BadRequestException('As duas senhas novas não são iguais.');
+    }
+    if (dto.next === dto.current) {
+      throw new BadRequestException(
+        'A senha nova precisa ser diferente da atual.',
+      );
+    }
+
+    const passwordHash = await bcrypt.hash(dto.next, SALT_ROUNDS);
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: { passwordHash },
+    });
+  }
+
+  async deleteAccount(userId: string, dto: DeleteAccountDto): Promise<void> {
+    const id = parseUserId(userId);
+    const partner = await this.getPartner(userId);
+    const email = partner.user?.email ?? '';
+
+    if (dto.typedEmail.trim().toLowerCase() !== email.toLowerCase()) {
+      throw new BadRequestException(
+        'Digite o e-mail da conta exatamente como aparece acima.',
+      );
+    }
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.partner.update({
+        where: { id: partner.id },
+        data: {
+          userId: null,
+          contactEmail: partner.contactEmail ?? email,
+        },
+      });
+      await tx.demandQuestion.updateMany({
+        where: { authorId: id },
+        data: { authorId: null },
+      });
+      await tx.user.delete({ where: { id } });
+    });
   }
 
   private async getPartner(userId: string): Promise<OrgRecord> {

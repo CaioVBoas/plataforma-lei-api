@@ -1,4 +1,8 @@
-import { ConflictException, UnauthorizedException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { Test, TestingModule } from '@nestjs/testing';
 import { PapelUsuario, Prisma, TipoParceiro } from '@prisma/client';
@@ -30,6 +34,10 @@ describe('AuthService', () => {
   const prisma = {
     user: {
       findUnique: jest.fn<Promise<unknown>, [FindUniqueCall]>(),
+      update: jest.fn<Promise<unknown>, [Record<string, unknown>]>(),
+    },
+    partner: {
+      findFirst: jest.fn<Promise<unknown>, [Record<string, unknown>]>(),
     },
     $transaction: jest.fn<unknown, [(client: typeof tx) => unknown]>(),
   };
@@ -471,6 +479,62 @@ describe('AuthService', () => {
 
       expect(result).not.toHaveProperty('name');
       expect(Object.keys(result).sort()).toEqual(['email', 'id', 'role']);
+    });
+  });
+
+  describe('códigos de verificação e recuperação de senha', () => {
+    it('gera código de 6 dígitos no cadastro de docente e valida no registro', async () => {
+      prisma.user.findUnique.mockResolvedValue(null);
+      tx.user.create.mockResolvedValue({
+        id: 10,
+        email: 'novo@cin.ufpe.br',
+        role: PapelUsuario.DOCENTE,
+      });
+      tx.professor.create.mockResolvedValue({ name: 'Novo Docente' });
+
+      const dto = {
+        email: 'novo@cin.ufpe.br',
+        password: 'senhaSegura123',
+        name: 'Novo Docente',
+        department: 'Centro de Informática',
+      };
+
+      const sent = await service.requestProfessorSignupCode(dto);
+      expect(sent.sentTo).toBe('novo@cin.ufpe.br');
+      expect(sent.demoCode).toMatch(/^\d{6}$/);
+
+      await expect(
+        service.registerProfessor({ ...dto, code: '000000' }),
+      ).rejects.toThrow(BadRequestException);
+
+      const auth = await service.registerProfessor({
+        ...dto,
+        code: sent.demoCode,
+      });
+      expect(auth.user.email).toBe('novo@cin.ufpe.br');
+    });
+
+    it('permite recuperar a senha com o código enviado', async () => {
+      prisma.user.findUnique.mockResolvedValue({
+        id: 5,
+        role: PapelUsuario.DOCENTE,
+      });
+      prisma.user.update.mockResolvedValue({ id: 5 });
+
+      const sent = await service.requestPasswordReset({
+        role: 'docente',
+        email: 'paola@cin.ufpe.br',
+      });
+
+      await service.resetPassword({
+        role: 'docente',
+        email: 'paola@cin.ufpe.br',
+        code: sent.demoCode,
+        password: 'novaSenha123',
+        confirm: 'novaSenha123',
+      });
+
+      expect(prisma.user.update).toHaveBeenCalledTimes(1);
     });
   });
 });

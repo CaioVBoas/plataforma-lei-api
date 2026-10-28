@@ -1,4 +1,13 @@
-import { Body, Controller, Get, Patch, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Patch,
+  Post,
+  UseGuards,
+} from '@nestjs/common';
 import {
   ApiBearerAuth,
   ApiOperation,
@@ -8,6 +17,10 @@ import {
 import { CurrentUser } from '../../common/decorators/currentUser.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { Role } from '../../common/enums/role.enum';
+import {
+  ChangePasswordDto,
+  DeleteAccountDto,
+} from '../auth/dto/accessAccount.dto';
 import { JwtAuthGuard } from '../auth/guards/jwtAuth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { OrgAccountDto } from './dto/orgAccount.dto';
@@ -85,5 +98,30 @@ export class OrgProfileController {
     @Body() dto: UpdateOrgImagesDto,
   ): Promise<OrgProfileDto> {
     return this.orgProfileService.updateImages(user.userId, dto);
+  }
+
+  @Post('account/password')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Trocar senha da conta da organização' })
+  @ApiResponse({ status: 204, description: 'Senha atualizada' })
+  changePassword(
+    @CurrentUser() user: { userId: string },
+    @Body() dto: ChangePasswordDto,
+  ): Promise<void> {
+    return this.orgProfileService.changePassword(user.userId, dto);
+  }
+
+  @Post('account/delete')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({
+    summary:
+      'Excluir conta da organização (preservando perfil, demandas e histórico)',
+  })
+  @ApiResponse({ status: 204, description: 'Conta excluída' })
+  deleteAccount(
+    @CurrentUser() user: { userId: string },
+    @Body() dto: DeleteAccountDto,
+  ): Promise<void> {
+    return this.orgProfileService.deleteAccount(user.userId, dto);
   }
 }
