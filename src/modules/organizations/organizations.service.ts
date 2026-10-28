@@ -133,13 +133,14 @@ export class OrganizationsService {
           focalName: true,
           focalRole: true,
           channel: true,
+          contactEmail: true,
           user: { select: { email: true } },
         },
       });
       detail.contact = {
         focalName: contact?.focalName ?? '',
         focalRole: contact?.focalRole ?? '',
-        email: contact?.user?.email ?? '',
+        email: contact?.contactEmail ?? contact?.user?.email ?? '',
         channel: contact?.channel ?? '',
       };
     }

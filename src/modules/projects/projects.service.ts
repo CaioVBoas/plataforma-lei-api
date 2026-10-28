@@ -49,7 +49,10 @@ export class ProjectsService {
     }
 
     const course = await this.prisma.course.findFirst({
-      where: { id: dto.courseId, professorId: professor.id },
+      where: {
+        id: dto.courseId,
+        ...this.accessibleCourseWhere(professor.id),
+      },
     });
     if (!course) {
       throw new NotFoundException('Disciplina não encontrada.');
@@ -77,7 +80,12 @@ export class ProjectsService {
     }
 
     const adopted = await this.prisma.project.count({
-      where: { courseId: course.id },
+      where: {
+        courseId: course.id,
+        milestones: {
+          none: { step: EtapaProjeto.ENCERRAMENTO, doneAt: { not: null } },
+        },
+      },
     });
     if (adopted >= course.projectCapacity) {
       throw new BusinessRuleException(
@@ -117,7 +125,7 @@ export class ProjectsService {
   async findAll(userId: string) {
     const professor = await this.getProfessor(userId);
     const projects = await this.prisma.project.findMany({
-      where: { course: { professorId: professor.id } },
+      where: { course: this.accessibleCourseWhere(professor.id) },
       include: projectInclude,
       orderBy: { createdAt: 'desc' },
     });
@@ -276,13 +284,19 @@ export class ProjectsService {
     return professor;
   }
 
+  private accessibleCourseWhere(professorId: number): Prisma.CourseWhereInput {
+    return {
+      OR: [{ professorId }, { coTeachers: { some: { professorId } } }],
+    };
+  }
+
   /** Projeto de outra pessoa é tratado como inexistente. */
   private async getOwnedProject(
     professorId: number,
     id: number,
   ): Promise<ProjectDetail> {
     const project = await this.prisma.project.findFirst({
-      where: { id, course: { professorId } },
+      where: { id, course: this.accessibleCourseWhere(professorId) },
       include: projectInclude,
     });
     if (!project) {

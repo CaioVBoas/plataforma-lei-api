@@ -167,7 +167,12 @@ export class DisciplinesService {
 
   async remove(userId: string, id: number): Promise<void> {
     const professorId = await this.professorIdOf(userId);
-    await this.findAccessible(id, professorId);
+    const current = await this.findAccessible(id, professorId);
+    if (current.professorId !== professorId) {
+      throw new ConflictException(
+        'Apenas o docente responsável pode excluir a disciplina.',
+      );
+    }
 
     // Conta todos os projetos, inclusive os encerrados: eles são o histórico.
     const projects = await this.prisma.project.count({

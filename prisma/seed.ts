@@ -96,12 +96,14 @@ async function main() {
     'Testes de Software',
   ];
 
+  const skillsByName = new Map<string, number>();
   for (const name of skillNames) {
-    await prisma.skill.upsert({
+    const skill = await prisma.skill.upsert({
       where: { name },
       update: {},
       create: { name },
     });
+    skillsByName.set(name, skill.id);
   }
   console.log('Competências cadastradas:', skillNames.length);
 
@@ -127,14 +129,33 @@ async function main() {
         expectedLevel: NivelCurso.INTERMEDIARIO,
       },
     });
+    const courseSkillNames = [
+      'React',
+      'TypeScript',
+      'Node.js',
+      'Design de Software',
+      'Engenharia de Requisitos',
+    ];
+    for (const skillName of courseSkillNames) {
+      const skillId = skillsByName.get(skillName);
+      if (skillId) {
+        await prisma.courseSkill.upsert({
+          where: { courseId_skillId: { courseId: course.id, skillId } },
+          update: {},
+          create: { courseId: course.id, skillId },
+        });
+      }
+    }
     console.log('Disciplina criada:', course.name);
   }
 
   // 7. Demanda no Cardápio pelo Hospital das Clínicas
   if (partnerUser.partner) {
+    const scopeNote =
+      'Protótipo funcional de um painel de triagem e classificação de risco.';
     const demand = await prisma.demand.upsert({
       where: { id: 1 },
-      update: {},
+      update: { scopeNote },
       create: {
         partnerId: partnerUser.partner.id,
         title: 'Triagem de encaminhamentos no ambulatório',
@@ -143,7 +164,8 @@ async function main() {
         description:
           'A equipe da central de regulação do HC precisa de um painel web simples para registrar, classificar por prioridade e direcionar os encaminhamentos médicos para os ambulatórios correspondentes.',
         affectedAudience: 'Equipe de regulação ambulatorial e pacientes do SUS aguardando consultas.',
-        expectedOutcome: 'Protótipo funcional de um painel de triagem e classificação de risco.',
+        expectedOutcome: scopeNote,
+        scopeNote,
         level: NivelCurso.INTERMEDIARIO,
         scopeFit: ViabilidadeEscopo.CABE_NO_SEMESTRE,
         meetingCadence: 'Quinzenal, quartas-feiras pela manhã',
@@ -153,6 +175,22 @@ async function main() {
         publishedAt: new Date('2026-08-10T00:00:00Z'),
       },
     });
+    const demandSkillNames = [
+      'React',
+      'TypeScript',
+      'Design de Software',
+      'Engenharia de Requisitos',
+    ];
+    for (const skillName of demandSkillNames) {
+      const skillId = skillsByName.get(skillName);
+      if (skillId) {
+        await prisma.demandSkill.upsert({
+          where: { demandId_skillId: { demandId: demand.id, skillId } },
+          update: {},
+          create: { demandId: demand.id, skillId },
+        });
+      }
+    }
     console.log('Demanda criada:', demand.title);
   }
 

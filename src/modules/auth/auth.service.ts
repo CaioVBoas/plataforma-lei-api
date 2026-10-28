@@ -140,6 +140,7 @@ export class AuthService {
   }
 
   async registerProfessor(dto: RegisterProfessorDto): Promise<AuthResponseDto> {
+    checkPasswordRules(dto.password);
     if (dto.code !== undefined) {
       this.verifyCode('cadastro', 'docente', dto.email, dto.code);
     }
@@ -152,6 +153,7 @@ export class AuthService {
   }
 
   async registerPartner(dto: RegisterPartnerDto): Promise<AuthResponseDto> {
+    checkPasswordRules(dto.password);
     if (dto.code !== undefined) {
       this.verifyCode('cadastro', 'organizacao', dto.email, dto.code);
     }
@@ -309,8 +311,9 @@ export class AuthService {
   }
 
   async login(dto: LoginDto): Promise<AuthResponseDto> {
+    const email = dto.email.trim().toLowerCase();
     const user = await this.prisma.user.findUnique({
-      where: { email: dto.email },
+      where: { email },
       select: { ...USER_SELECT, passwordHash: true },
     });
 
@@ -367,10 +370,11 @@ export class AuthService {
     try {
       // Usuário e perfil nascem juntos ou não nascem: sem a transação, uma
       // falha no segundo passo deixaria um usuário sem perfil no banco.
+      const email = dto.email.trim().toLowerCase();
       const user = await this.prisma.$transaction(async (tx) => {
         const created = await tx.user.create({
           data: {
-            email: dto.email,
+            email,
             passwordHash,
             role: toPapelUsuario(role),
           },
