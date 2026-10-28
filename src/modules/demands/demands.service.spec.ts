@@ -177,7 +177,10 @@ describe('DemandsService', () => {
       expect(result[0].status).toBe('open');
       expect(result[0].organization.name).toBe('Hospital das Clínicas');
       expect(result[0].organization.type).toBe('Órgão público');
-      expect(result[0].skills).toEqual(['Engenharia de software', 'Banco de dados']);
+      expect(result[0].skills).toEqual([
+        'Engenharia de software',
+        'Banco de dados',
+      ]);
       expect(result[0].level).toBe('intermediate');
       expect(result[0].scopeFit).toBe('fits');
 
@@ -215,7 +218,9 @@ describe('DemandsService', () => {
         ],
       });
 
-      prisma.demand.findMany.mockResolvedValue([demandWithWatcherAndInvitation]);
+      prisma.demand.findMany.mockResolvedValue([
+        demandWithWatcherAndInvitation,
+      ]);
 
       const result = await service.getMenu('1');
 
@@ -223,7 +228,9 @@ describe('DemandsService', () => {
       expect(result[0].invitation).toBeDefined();
       expect(result[0].invitation?.to).toBe('paola.accioly@ufpe.br');
       expect(result[0].invitation?.from).toBe('Kiev Santos, L.E.I.');
-      expect(result[0].invitation?.message).toBe('Demanda indicada para sua turma');
+      expect(result[0].invitation?.message).toBe(
+        'Demanda indicada para sua turma',
+      );
     });
   });
 
@@ -345,7 +352,9 @@ describe('DemandsService', () => {
       prisma.demand.findUnique.mockResolvedValue(alreadyReservedDemand);
 
       await expect(service.reserveDemand(1, '1')).rejects.toThrow(
-        new BadRequestException('Esta demanda não está mais livre no cardápio.'),
+        new BadRequestException(
+          'Esta demanda não está mais livre no cardápio.',
+        ),
       );
     });
 

@@ -29,4 +29,3 @@ import { SkillsModule } from './modules/skills/skills.module';
   ],
 })
 export class AppModule {}
-

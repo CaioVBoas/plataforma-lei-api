@@ -89,9 +89,7 @@ describe('OrgDemandsService', () => {
     it('deve lançar ForbiddenException se parceiro não for encontrado', async () => {
       prismaMock.partner.findUnique.mockResolvedValue(null);
 
-      await expect(service.getPartner(999)).rejects.toThrow(
-        ForbiddenException,
-      );
+      await expect(service.getPartner(999)).rejects.toThrow(ForbiddenException);
     });
   });
 
@@ -171,7 +169,10 @@ describe('OrgDemandsService', () => {
           project: {
             id: 201,
             milestones: [
-              { step: EtapaProjeto.ENCERRAMENTO, doneAt: new Date('2026-12-01') },
+              {
+                step: EtapaProjeto.ENCERRAMENTO,
+                doneAt: new Date('2026-12-01'),
+              },
             ],
           },
           reservedByProfessor: null,
@@ -302,7 +303,9 @@ describe('OrgDemandsService', () => {
       expect(result.stage).toBe('draft');
       if (result.kind === 'submission') {
         expect(result.submission.title).toBe('Rascunho de Demanda');
-        expect(result.submission.organization.name).toBe('Hospital das Clínicas');
+        expect(result.submission.organization.name).toBe(
+          'Hospital das Clínicas',
+        );
       }
     });
 

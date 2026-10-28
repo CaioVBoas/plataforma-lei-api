@@ -2,7 +2,9 @@ import { ApiProperty } from '@nestjs/swagger';
 import { IsNotEmpty, IsString, MaxLength } from 'class-validator';
 
 export class AnswerQuestionDto {
-  @ApiProperty({ example: 'Podemos realizar as reuniões por videoconferência.' })
+  @ApiProperty({
+    example: 'Podemos realizar as reuniões por videoconferência.',
+  })
   @IsString()
   @IsNotEmpty({ message: 'Escreva a resposta.' })
   @MaxLength(1000, {

@@ -26,7 +26,9 @@ export class OrgDemandsController {
   constructor(private readonly orgDemandsService: OrgDemandsService) {}
 
   @Get()
-  @ApiOperation({ summary: 'Listar resumo das demandas da organização parceira' })
+  @ApiOperation({
+    summary: 'Listar resumo das demandas da organização parceira',
+  })
   async getDemands(@CurrentUser() user: { userId: string }) {
     return this.orgDemandsService.listDemands(user.userId);
   }

@@ -27,9 +27,7 @@ export class DemandsController {
 
   @Get('menu')
   @ApiOperation({ summary: 'Listar demandas publicadas no cardápio' })
-  async getMenu(
-    @CurrentUser() user: { userId: string },
-  ): Promise<DemandDto[]> {
+  async getMenu(@CurrentUser() user: { userId: string }): Promise<DemandDto[]> {
     return this.demandsService.getMenu(user.userId);
   }
 

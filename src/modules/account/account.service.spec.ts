@@ -1,5 +1,10 @@
-import { NotFoundException, UnauthorizedException } from '@nestjs/common';
+import {
+  BadRequestException,
+  NotFoundException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
+import * as bcrypt from 'bcryptjs';
 import { PrismaService } from '../../database/prisma.service';
 import { AccountService } from './account.service';
 
@@ -17,6 +22,22 @@ describe('AccountService', () => {
       findUnique: jest.fn<Promise<unknown>, [FindUniqueCall]>(),
       update: jest.fn<Promise<unknown>, [UpdateCall]>(),
     },
+    user: {
+      findUnique: jest.fn<Promise<unknown>, [FindUniqueCall]>(),
+      update: jest.fn<Promise<unknown>, [Record<string, unknown>]>(),
+      delete: jest.fn<Promise<unknown>, [Record<string, unknown>]>(),
+    },
+    demand: {
+      updateMany: jest.fn<Promise<unknown>, [Record<string, unknown>]>(),
+      update: jest.fn<Promise<unknown>, [Record<string, unknown>]>(),
+    },
+    demandQuestion: {
+      updateMany: jest.fn<Promise<unknown>, [Record<string, unknown>]>(),
+    },
+    project: {
+      delete: jest.fn<Promise<unknown>, [Record<string, unknown>]>(),
+    },
+    $transaction: jest.fn<unknown, [(client: unknown) => unknown]>(),
   };
 
   const stored = (overrides: Record<string, unknown> = {}) => ({
@@ -153,6 +174,35 @@ describe('AccountService', () => {
         NotFoundException,
       );
       expect(prisma.professor.update).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('changePassword', () => {
+    it('valida a senha atual e grava o novo hash', async () => {
+      const passwordHash = await bcrypt.hash('senhaAntiga123', 10);
+      prisma.user.findUnique.mockResolvedValue({ id: 4, passwordHash });
+      prisma.user.update.mockResolvedValue({ id: 4 });
+
+      await service.changePassword('4', {
+        current: 'senhaAntiga123',
+        next: 'senhaNova456',
+        confirm: 'senhaNova456',
+      });
+
+      expect(prisma.user.update).toHaveBeenCalledTimes(1);
+    });
+
+    it('rejeita quando a senha atual não confere', async () => {
+      const passwordHash = await bcrypt.hash('senhaAntiga123', 10);
+      prisma.user.findUnique.mockResolvedValue({ id: 4, passwordHash });
+
+      await expect(
+        service.changePassword('4', {
+          current: 'errada123',
+          next: 'senhaNova456',
+          confirm: 'senhaNova456',
+        }),
+      ).rejects.toThrow(BadRequestException);
     });
   });
 });

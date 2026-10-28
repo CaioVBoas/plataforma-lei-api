@@ -16,7 +16,12 @@ import {
 import { CurrentUser } from '../../common/decorators/currentUser.decorator';
 import { AuthService } from './auth.service';
 import { AuthResponseDto, UserResponseDto } from './dto/authResponse.dto';
+import { CodeSentDto } from './dto/codeSent.dto';
 import { LoginDto } from './dto/login.dto';
+import {
+  RequestPasswordResetDto,
+  ResetPasswordDto,
+} from './dto/passwordReset.dto';
 import { RegisterPartnerDto } from './dto/registerPartner.dto';
 import { RegisterProfessorDto } from './dto/registerProfessor.dto';
 import { RegisterStudentDto } from './dto/registerStudent.dto';
@@ -26,6 +31,48 @@ import { JwtAuthGuard } from './guards/jwtAuth.guard';
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
+
+  @Post('register/professor/code')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Validar dados do docente e gerar código de verificação',
+  })
+  @ApiResponse({ status: 200, type: CodeSentDto })
+  requestProfessorSignupCode(
+    @Body() dto: RegisterProfessorDto,
+  ): Promise<CodeSentDto> {
+    return this.authService.requestProfessorSignupCode(dto);
+  }
+
+  @Post('register/partner/code')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Validar dados do parceiro e gerar código de verificação',
+  })
+  @ApiResponse({ status: 200, type: CodeSentDto })
+  requestPartnerSignupCode(
+    @Body() dto: RegisterPartnerDto,
+  ): Promise<CodeSentDto> {
+    return this.authService.requestPartnerSignupCode(dto);
+  }
+
+  @Post('password-reset/code')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Solicitar código de recuperação de senha' })
+  @ApiResponse({ status: 200, type: CodeSentDto })
+  requestPasswordReset(
+    @Body() dto: RequestPasswordResetDto,
+  ): Promise<CodeSentDto> {
+    return this.authService.requestPasswordReset(dto);
+  }
+
+  @Post('password-reset')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Redefinir senha com código de verificação' })
+  @ApiResponse({ status: 204, description: 'Senha redefinida' })
+  resetPassword(@Body() dto: ResetPasswordDto): Promise<void> {
+    return this.authService.resetPassword(dto);
+  }
 
   @Post('register/student')
   @ApiOperation({ summary: 'Registrar estudante' })
