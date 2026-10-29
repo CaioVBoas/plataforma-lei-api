@@ -124,6 +124,17 @@ describe('MailService', () => {
     );
   });
 
+  it('SMTP_USER sem SMTP_PASS lança erro ao subir', () => {
+    expect(() =>
+      build({
+        MAIL_ENABLED: 'true',
+        SMTP_HOST: 'smtp.x.com',
+        SMTP_USER: 'user',
+        MAIL_FROM: 'a@x.com',
+      }),
+    ).toThrow(/SMTP_PASS/);
+  });
+
   it('repassa a lista de destinatários sem alterar', async () => {
     const to = ['a@x.com', 'b@x.com'];
     await build({}).send({ ...mail, to });

@@ -52,12 +52,17 @@ export class MailService {
 
     const user = config.get<string>('SMTP_USER')?.trim();
     this.smtpPass = config.get<string>('SMTP_PASS');
+    if (user && !this.smtpPass) {
+      throw new Error(
+        'SMTP_PASS é obrigatório quando SMTP_USER está definido.',
+      );
+    }
 
     this.transporter = createTransport({
       host,
       port,
       secure: port === SECURE_SMTP_PORT,
-      ...(user ? { auth: { user, pass: this.smtpPass ?? '' } } : {}),
+      ...(user ? { auth: { user, pass: this.smtpPass } } : {}),
     });
   }
 
