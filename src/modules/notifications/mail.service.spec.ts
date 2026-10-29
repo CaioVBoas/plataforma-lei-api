@@ -107,7 +107,8 @@ describe('MailService', () => {
       SMTP_HOST: 'smtp.x.com',
       MAIL_FROM: 'a@x.com',
     });
-    expect(createTransport.mock.calls[0][0]).not.toHaveProperty('auth');
+    const [options] = createTransport.mock.calls[0] as [object];
+    expect(options).not.toHaveProperty('auth');
   });
 
   it('com SMTP_USER e SMTP_PASS envia auth', () => {
