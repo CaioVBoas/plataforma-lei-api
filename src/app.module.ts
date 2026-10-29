@@ -6,6 +6,7 @@ import { AuthModule } from './modules/auth/auth.module';
 import { CalendarModule } from './modules/calendar/calendar.module';
 import { DemandsModule } from './modules/demands/demands.module';
 import { DisciplinesModule } from './modules/disciplines/disciplines.module';
+import { MailModule } from './modules/notifications/mail.module';
 import { OrgPortalModule } from './modules/org-portal/orgPortal.module';
 import { OrgProfileModule } from './modules/orgProfile/orgProfile.module';
 import { OrganizationsModule } from './modules/organizations/organizations.module';
@@ -16,6 +17,7 @@ import { SkillsModule } from './modules/skills/skills.module';
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     PrismaModule,
+    MailModule,
     AuthModule,
     ProjectsModule,
     OrgPortalModule,
