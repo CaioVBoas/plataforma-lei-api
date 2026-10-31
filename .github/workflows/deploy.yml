@@ -1,0 +1,106 @@
+name: CD - Deploy API (VM do CIn)
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  build-and-push:
+    name: Build & Push Docker Image (GHCR)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set lowercase image name
+        id: image_meta
+        run: |
+          echo "image_lc=$(echo '${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}' | tr '[:upper:]' '[:lower:]')" >> "$GITHUB_OUTPUT"
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ steps.image_meta.outputs.image_lc }}:latest
+            ${{ steps.image_meta.outputs.image_lc }}:sha-${{ github.sha }}
+
+  deploy-cin-vm:
+    name: Deploy to CIn VM (/srv/plataforma-lei/api)
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Check VM SSH Secrets configuration
+        id: check_secrets
+        env:
+          VM_HOST: ${{ secrets.VM_HOST }}
+          VM_USER: ${{ secrets.VM_USER }}
+          VM_SSH_KEY: ${{ secrets.VM_SSH_KEY }}
+        run: |
+          if [ -z "$VM_HOST" ] || [ -z "$VM_USER" ] || [ -z "$VM_SSH_KEY" ]; then
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            echo "⚠️ Secrets VM_HOST, VM_USER ou VM_SSH_KEY ainda não configurados. Pulando etapa SSH na VM do CIn." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Copy docker-compose.prod.yml to isolated API directory on VM
+        if: steps.check_secrets.outputs.configured == 'true'
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.VM_HOST }}
+          username: ${{ secrets.VM_USER }}
+          key: ${{ secrets.VM_SSH_KEY }}
+          port: ${{ secrets.VM_SSH_PORT || 22 }}
+          source: 'docker-compose.prod.yml'
+          target: ${{ secrets.VM_API_DIR || '/srv/plataforma-lei/api' }}
+
+      - name: Pull image and restart only API container on CIn VM
+        if: steps.check_secrets.outputs.configured == 'true'
+        uses: appleboy/ssh-action@v1.1.0
+        with:
+          host: ${{ secrets.VM_HOST }}
+          username: ${{ secrets.VM_USER }}
+          key: ${{ secrets.VM_SSH_KEY }}
+          port: ${{ secrets.VM_SSH_PORT || 22 }}
+          script: |
+            set -e
+            API_DIR="${{ secrets.VM_API_DIR || '/srv/plataforma-lei/api' }}"
+            cd "$API_DIR"
+            docker network inspect plataforma_lei_net >/dev/null 2>&1 || docker network create plataforma_lei_net
+            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin || true
+            docker compose -f docker-compose.prod.yml pull
+            docker compose -f docker-compose.prod.yml up -d --remove-orphans
+            echo "⏳ Aguardando healthcheck da API..."
+            for i in $(seq 1 15); do
+              if wget -qO- http://localhost:3000/health >/dev/null 2>&1; then
+                echo "✅ API saudável em http://localhost:3000/health"
+                exit 0
+              fi
+              sleep 2
+            done
+            echo "❌ Falha no healthcheck da API após deploy"
+            docker compose -f docker-compose.prod.yml logs --tail=50
+            exit 1

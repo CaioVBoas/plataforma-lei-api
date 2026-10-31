@@ -1,0 +1,28 @@
+# ==============================================================================
+# Stack Isolada do Banco de Dados — Produção (VM do CIn)
+# Diretório recomendado na VM: /srv/plataforma-lei/db/docker-compose.db.yml
+# IMPORTANTE: Este arquivo fica em um diretório separado da API e NUNCA é tocado
+# pelos pipelines de CI/CD, garantindo que deploys da API jamais apaguem o banco.
+# ==============================================================================
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: plataforma_lei_postgres
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Defina POSTGRES_PASSWORD no arquivo .env do banco}
+      POSTGRES_DB: ${POSTGRES_DB:-plataforma_lei_db}
+    volumes:
+      - /srv/plataforma-lei/db/pgdata:/var/lib/postgresql/data
+    networks:
+      - plataforma_lei_net
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-plataforma_lei_db}']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+networks:
+  plataforma_lei_net:
+    external: true

@@ -1,98 +1,85 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# Plataforma LEI — API (Backend NestJS + Prisma + PostgreSQL)
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+API RESTful do **Laboratório de Experiências Inovadoras (L.E.I. — CIn/UFPE)** responsável pela gestão de usuários (Docentes e Organizações Parceiras), Calendário Acadêmico, Disciplinas, Cardápio de Demandas, Triagem, Reservas e Ciclo de Vida de Projetos em 6 etapas.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+---
 
-## Description
+## 1. Execução Rápida com Docker Compose (Stack Completa Local)
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
-
-## Project setup
+Para subir o PostgreSQL e a API já compilada (com aplicação automática de migrations no entrypoint):
 
 ```bash
-$ npm install
+cp .env.example .env
+docker compose up --build -d
 ```
 
-## Compile and run the project
+- **API**: `http://localhost:3000`
+- **Healthcheck**: `http://localhost:3000/health`
+- **Swagger / OpenAPI**: `http://localhost:3000/api/docs`
+
+> Caso queira popular o banco com dados iniciais de demonstração na subida do container, defina `RUN_SEED=true` no `.env` ou execute `npx prisma db seed`.
+
+---
+
+## 2. Desenvolvimento Local (Node.js no Host + Banco no Docker)
 
 ```bash
-# development
-$ npm run start
+# 1. Subir apenas o container do PostgreSQL
+docker compose up -d postgres
 
-# watch mode
-$ npm run start:dev
+# 2. Instalar dependências e gerar o Prisma Client
+npm install
+npx prisma generate
 
-# production mode
-$ npm run start:prod
+# 3. Aplicar migrations e seed inicial
+npx prisma migrate deploy
+npx prisma db seed
+
+# 4. Iniciar a API em modo watch
+npm run start:dev
 ```
 
-## Run tests
+---
 
-```bash
-# unit tests
-$ npm run test
+## 3. Scripts Disponíveis
 
-# e2e tests
-$ npm run test:e2e
+| Script | Descrição |
+| --- | --- |
+| `npm run start:dev` | Inicia a API em modo watch |
+| `npm run build` | Compila a aplicação para `dist/` |
+| `npm run start:prod` | Executa o build de produção (`node dist/src/main.js`) |
+| `npm run lint:check` | Valida regras do ESLint + Prettier (usado no CI) |
+| `npm run lint` | Corrige problemas de lint automaticamente |
+| `npm test` | Executa a suíte de testes unitários com Jest |
 
-# test coverage
-$ npm run test:cov
-```
+---
 
-## Deployment
+## 4. Arquitetura de Deploy na VM do CIn (Isolamento Físico de Diretórios)
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
+Para garantir que **nenhum deploy automatizado da API ou do Frontend possa apagar ou afetar o banco de dados**, a infraestrutura na VM do CIn é dividida em **3 diretórios independentes**, comunicando-se pela rede Docker externa `plataforma_lei_net`:
 
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+1. **`/srv/plataforma-lei/db/` (Banco de Dados — Isolado do CI/CD)**:
+   - Contém `docker-compose.db.yml` e o diretório persistente `/srv/plataforma-lei/db/pgdata`.
+   - Inicializado uma única vez na VM:
+     ```bash
+     docker network create plataforma_lei_net
+     mkdir -p /srv/plataforma-lei/db/pgdata
+     cd /srv/plataforma-lei/db
+     # Copie docker-compose.db.yml e crie o .env com POSTGRES_PASSWORD
+     docker compose -f docker-compose.db.yml up -d
+     ```
+2. **`/srv/plataforma-lei/api/` (API NestJS — Alvo do CD deste repositório)**:
+   - Contém apenas `docker-compose.prod.yml` e o `.env` de produção da API (`DATABASE_URL`, `JWT_SECRET`, `FRONTEND_URL`).
+   - Atualizado automaticamente via GitHub Actions (`.github/workflows/deploy.yml`) a cada push na `main`.
+3. **`/srv/plataforma-lei/web/` (Frontend Nginx + React — Alvo do CD do repositório web)**:
+   - Contém apenas o `docker-compose.prod.yml` do frontend, servindo a SPA na porta `80` e fazendo *reverse proxy* de `/api/*` para `http://plataforma_lei_api:3000/`.
 
-```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
-```
+### Secrets Necessários no GitHub (`Settings > Secrets and variables > Actions`)
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
-
-## Resources
-
-Check out a few resources that may come in handy when working with NestJS:
-
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
-
-## Support
-
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
-## License
-
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+| Secret | Descrição |
+| --- | --- |
+| `VM_HOST` | Endereço IP ou hostname da VM do CIn |
+| `VM_USER` | Usuário SSH na VM do CIn |
+| `VM_SSH_KEY` | Chave privada SSH para conexão na VM |
+| `VM_SSH_PORT` | *(Opcional)* Porta SSH (padrão `22`) |
+| `VM_API_DIR` | *(Opcional)* Caminho do diretório da API na VM (padrão `/srv/plataforma-lei/api`) |
