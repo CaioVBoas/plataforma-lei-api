@@ -1,0 +1,26 @@
+# ==============================================================================
+# Stack Isolada da API — Produção (VM do CIn)
+# Diretório recomendado na VM: /srv/plataforma-lei/api/docker-compose.prod.yml
+# Conecta-se ao container plataforma_lei_postgres através da rede externa
+# plataforma_lei_net, sem compartilhar diretório nem volumes com o banco.
+# ==============================================================================
+services:
+  api:
+    image: ${API_IMAGE:-ghcr.io/caiovboas/plataforma-lei-api:latest}
+    container_name: plataforma_lei_api
+    restart: always
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      DATABASE_URL: ${DATABASE_URL:?Defina DATABASE_URL no arquivo .env da API}
+      JWT_SECRET: ${JWT_SECRET:?Defina JWT_SECRET no arquivo .env da API}
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost}
+      RUN_SEED: ${RUN_SEED:-false}
+    ports:
+      - '${API_PORT:-3000}:3000'
+    networks:
+      - plataforma_lei_net
+
+networks:
+  plataforma_lei_net:
+    external: true

@@ -155,7 +155,7 @@ describe('DemandsService', () => {
       expect(prisma.demand.updateMany).toHaveBeenCalledWith({
         where: {
           reservedByProfessorId: { not: null },
-          reservationDeadline: { lt: expect.any(Date) },
+          reservationDeadline: { lt: expect.any(Date) as Date },
         },
         data: {
           reservedByProfessorId: null,
@@ -168,7 +168,7 @@ describe('DemandsService', () => {
           stage: EtapaSubmissao.PUBLICADA,
           project: null,
         },
-        include: expect.any(Object),
+        include: expect.any(Object) as Record<string, unknown>,
         orderBy: { id: 'asc' },
       });
 
@@ -334,7 +334,7 @@ describe('DemandsService', () => {
         where: { id: 1 },
         data: {
           reservedByProfessorId: mockProfessor.id,
-          reservationDeadline: expect.any(Date),
+          reservationDeadline: expect.any(Date) as Date,
         },
       });
       expect(result.status).toBe('reserved');
@@ -558,7 +558,7 @@ describe('DemandsService', () => {
           teacherId: mockProfessor.id,
           authorId: mockProfessor.userId,
           text: 'Qual é o formato dos dados?',
-          askedAt: expect.any(Date),
+          askedAt: expect.any(Date) as Date,
         },
       });
       expect(result.questions).toHaveLength(1);

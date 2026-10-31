@@ -569,7 +569,7 @@ describe('OrgDemandsService', () => {
             stage: EtapaSubmissao.PUBLICADA,
             scopeNote: 'Resultado esperado',
             reviewNote: null,
-          }),
+          }) as Record<string, unknown>,
         }),
       );
     });
@@ -669,7 +669,7 @@ describe('OrgDemandsService', () => {
         data: expect.objectContaining({
           answerText: 'Serão semanais via Google Meet.',
           answeredBy: 'Renata Vasconcelos, Hospital das Clínicas',
-        }),
+        }) as Record<string, unknown>,
       });
 
       expect(result.questions[0].replies).toHaveLength(1);

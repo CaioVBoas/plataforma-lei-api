@@ -11,9 +11,14 @@ async function bootstrap() {
   // 100kb barraria a capa de 1600×480 com 413.
   app.useBodyParser('json', { limit: '5mb' });
 
-  // Configuração do CORS para o Vite Frontend
+  // Configuração do CORS para o Vite Frontend (suporta múltiplas origens separadas por vírgula)
+  const allowedOrigins = (process.env.FRONTEND_URL || 'http://localhost:5173')
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+
   app.enableCors({
-    origin: [process.env.FRONTEND_URL || 'http://localhost:5173'],
+    origin: allowedOrigins,
     credentials: true,
   });
 
